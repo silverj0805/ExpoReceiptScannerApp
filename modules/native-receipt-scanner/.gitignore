@@ -1,0 +1,10 @@
+# Android build artifacts
+android/build/
+android/.cxx/
+android/.gradle/
+
+# iOS build artifacts
+ios/build/
+
+# macOS
+.DS_Store
