@@ -1,3 +1,16 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+/*
+ * 공통 디자인 토큰 (원본 프로젝트 값 이식)
+ */
+@theme {
+  --color-primary: #1b5e43;
+  --color-background: #f7f6f3;
+  --color-black: #1c1b1a;
+  --color-gray: #6f6d68;
+}
+
 :root {
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
