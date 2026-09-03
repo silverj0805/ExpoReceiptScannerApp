@@ -9,10 +9,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.silverj0805.exporeceiptscannerapp"
+      "bundleIdentifier": "com.silverj0805.exporeceiptscannerapp",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.silverj0805.exporeceiptscannerapp",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,6 +43,16 @@
           "photosPermission": "영수증 사진을 선택하기 위해 사진 보관함 접근 권한이 필요합니다.",
           "cameraPermission": "영수증을 촬영하기 위해 카메라 접근 권한이 필요합니다.",
           "microphonePermission": false
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "dynamic"
+          }
         }
       ]
     ],
