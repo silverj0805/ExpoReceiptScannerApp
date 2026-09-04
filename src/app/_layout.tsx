@@ -1,24 +1,59 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
+import { useEffect } from 'react';
+import ErrorBoundary from 'react-native-error-boundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import {
+  recordErrorWithContext,
+  setScreenForTracking,
+} from '@/shared/firebase/crashlyticsRecorder';
 
 /**
  * 루트 레이아웃 — CLI 버전의 App.tsx + RootNavigator를 합친 역할.
  *
- * 지금은 "네비게이션 골격"만 구성하는 단계라 SafeAreaProvider만 둔다.
- * QueryClientProvider/KeyboardProvider/ErrorBoundary/PrivacyScreenCover 등은
- * shared 이식 태스크에서 해당 모듈들이 실제로 옮겨진 뒤에 여기 추가한다.
+ * QueryClientProvider/KeyboardProvider/PrivacyScreenCover는 api/store/utils
+ * 이식이 끝난 뒤 이어서 추가 예정. Firebase(ErrorBoundary + 화면 추적)는 이번 태스크에서 연결.
  */
+function handleError(error: Error, stackTrace: string) {
+  if (__DEV__) {
+    console.error('⚠️ ErrorBoundary caught an error:', error, stackTrace);
+  }
+  recordErrorWithContext(error, {
+    extra: { stackTrace: stackTrace.slice(0, 500) },
+  }).catch(() => {});
+}
+
+/**
+ * 화면 전환 시 Crashlytics에 현재 화면을 기록.
+ *
+ * CLI 버전과의 차이: React Navigation은 NavigationContainer.onStateChange +
+ * getActiveRouteName()(중첩 네비게이터를 재귀적으로 타고 내려가는 커스텀 유틸)이 필요했지만,
+ * Expo Router는 usePathname()이 현재 URL 경로를 이미 알려주므로 그 값을 그대로 넘기면 된다.
+ */
+function ScreenTracker() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setScreenForTracking(pathname);
+  }, [pathname]);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="confirm" />
-        <Stack.Screen name="receipts/[id]" />
-        <Stack.Screen name="settings/index" />
-        <Stack.Screen name="settings/license" />
-        <Stack.Screen name="settings/webview" />
-      </Stack>
+      <ErrorBoundary onError={handleError}>
+        <ScreenTracker />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="confirm" />
+          <Stack.Screen name="receipts/[id]" />
+          <Stack.Screen name="settings/index" />
+          <Stack.Screen name="settings/license" />
+          <Stack.Screen name="settings/webview" />
+        </Stack>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

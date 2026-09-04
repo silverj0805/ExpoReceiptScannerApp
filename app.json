@@ -55,7 +55,8 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withGoogleServicePlistAtProjectRoot"
     ],
     "experiments": {
       "typedRoutes": true,

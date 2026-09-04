@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "expo-receipt-scanner-dummy",
-    "storage_bucket": "expo-receipt-scanner-dummy.appspot.com"
+    "project_number": "162503432975",
+    "project_id": "exporeceiptscannerapp",
+    "storage_bucket": "exporeceiptscannerapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:162503432975:android:002eb997ee6cee0d957c7a",
         "android_client_info": {
           "package_name": "com.silverj0805.exporeceiptscannerapp"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "dummy-api-key-for-prebuild-check"
+          "current_key": "AIzaSyDyyoFjpUA-Loof9KBNto9fc24guAjGPvE"
         }
       ],
       "services": {
