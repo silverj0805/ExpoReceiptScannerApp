@@ -13,6 +13,19 @@ jest.mock('react-native-device-info', () =>
   require('react-native-device-info/jest/react-native-device-info-mock'),
 );
 
+// shared/api/client.ts가 항상 crashlyticsRecorder를 import하는데, 그 안에서 실제
+// @react-native-firebase/{app,crashlytics}를 로드하면 네이티브 바이너리가 없는 Jest
+// 환경에서 "Native module NativeRNFBTurboApp is not registered"로 즉시 던진다
+// (client.ts를 쓰는 화면 테스트를 처음 작성하며 실측으로 발견 — client.test.ts는
+// crashlyticsRecorder를 테스트별로 직접 목 처리해서 이 문제를 안 겪었을 뿐).
+// RNFB는 공식 jest mock을 제공하지 않아 이 프로젝트 파일(crashlyticsRecorder) 자체를
+// 전역으로 목 처리 — 어차피 Crashlytics 실호출 자체는 Task 4에서 시뮬레이터로 검증 완료.
+jest.mock('@/shared/firebase/crashlyticsRecorder', () => ({
+  setScreenForTracking: jest.fn(),
+  recordErrorWithContext: jest.fn().mockResolvedValue(undefined),
+  recordApiError: jest.fn(),
+}));
+
 // MSW: 모든 테스트가 시작되기 전에 서버(요청 가로채기)를 켜고, 각 테스트 사이에
 // 핸들러를 초기화(한 테스트에서 server.use()로 추가한 핸들러가 다음 테스트로 새지 않게)하고,
 // 전체 테스트가 끝나면 끈다.

@@ -1,24 +1,29 @@
-import '@/global.css';
+import "@/global.css";
 
-import { Stack, usePathname } from 'expo-router';
-import { useEffect } from 'react';
-import ErrorBoundary from 'react-native-error-boundary';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack, usePathname } from "expo-router";
+import { useEffect } from "react";
+import ErrorBoundary from "react-native-error-boundary";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import {
   recordErrorWithContext,
   setScreenForTracking,
-} from '@/shared/firebase/crashlyticsRecorder';
+} from "@/shared/firebase/crashlyticsRecorder";
 
 /**
  * 루트 레이아웃 — CLI 버전의 App.tsx + RootNavigator를 합친 역할.
  *
- * QueryClientProvider/KeyboardProvider/PrivacyScreenCover는 api/store/utils
- * 이식이 끝난 뒤 이어서 추가 예정. Firebase(ErrorBoundary + 화면 추적)는 이번 태스크에서 연결.
+ * KeyboardProvider/PrivacyScreenCover는 confirm 이식 때 이어서 추가 예정.
+ * Firebase(ErrorBoundary + 화면 추적)는 Task 4에서, QueryClientProvider는
+ * receipt 이식(이번 태스크)에서 연결.
  */
+
+const queryClient = new QueryClient();
+
 function handleError(error: Error, stackTrace: string) {
   if (__DEV__) {
-    console.error('⚠️ ErrorBoundary caught an error:', error, stackTrace);
+    console.error("⚠️ ErrorBoundary caught an error:", error, stackTrace);
   }
   recordErrorWithContext(error, {
     extra: { stackTrace: stackTrace.slice(0, 500) },
@@ -44,18 +49,20 @@ function ScreenTracker() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary onError={handleError}>
-        <ScreenTracker />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="confirm" />
-          <Stack.Screen name="receipts/[id]" />
-          <Stack.Screen name="settings/index" />
-          <Stack.Screen name="settings/license" />
-          <Stack.Screen name="settings/webview" />
-        </Stack>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <ErrorBoundary onError={handleError}>
+          <ScreenTracker />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="confirm" />
+            <Stack.Screen name="receipts/[id]" />
+            <Stack.Screen name="settings/index" />
+            <Stack.Screen name="settings/license" />
+            <Stack.Screen name="settings/webview" />
+          </Stack>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

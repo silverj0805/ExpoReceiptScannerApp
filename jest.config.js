@@ -42,6 +42,12 @@ module.exports = {
     // 것과 동일한 babel 옵션(expo 프리셋 + root/caller)을 그대로 재사용해야 실제로 변환됨.
     '\\.mjs$': jestExpoPreset.transform['\\.[jt]sx?$'],
   },
+  // EXPO_PUBLIC_API_BASE_URL 기본값 — 반드시 setupFilesAfterEnv가 아니라 setupFiles여야
+  // 한다(더 이르게 실행됨). shared/api/client.ts는 모듈이 처음 require되는 시점에 이 값을
+  // 캡처하는데, 화면 테스트 파일들은 자기 코드 맨 위에서 (screen) -> api -> client 순으로
+  // import하므로 그 시점보다 먼저 값이 세팅돼 있어야 한다. jestExpoPreset이 원래 쓰던
+  // RN 내부 setupFiles도 그대로 이어붙임(직접 지정하면 preset 값이 덮어써짐 — 위와 동일 함정).
+  setupFiles: [...(jestExpoPreset.setupFiles ?? []), '<rootDir>/jest.env.js'],
   // MSW 서버 라이프사이클 등록 — jest.mock() 호출이 섞여 있어서 setupFiles가 아니라
   // setupFilesAfterEnv(jest 전역이 준비된 시점)에서 실행돼야 한다.
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
