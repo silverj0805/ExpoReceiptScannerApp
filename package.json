@@ -61,7 +61,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "generate:licenses": "node scripts/generateLicenseData.js"
   },
   "private": true
 }

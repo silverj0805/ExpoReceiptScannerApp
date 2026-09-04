@@ -14,8 +14,14 @@ module.exports = {
   // jest-expo 기본 패턴(react-native/expo/react-navigation 등)에 msw ESM 의존성 추가.
   // (rettime, @mswjs/*, @open-draft/*, @bundled-es-modules/*, headers-polyfill,
   //  strict-event-emitter, outvariant, until-async — 전부 msw 자체 또는 msw의 하위 의존성)
+  //
+  // uniwind: package.json exports의 "react-native" 조건이 컴파일된 dist가 아니라
+  // src/index.ts(ESM TS 원본)를 그대로 가리킴 — 이 프로젝트의 customExportConditions에
+  // "react-native"가 들어있어(아래) 실제로 그 경로가 선택되는데, transformIgnorePatterns에서
+  // 빠져있으면 Jest가 이 원본 .ts를 트랜스파일 없이 그대로 실행해 `SyntaxError: Unexpected
+  // token 'export'`가 남(Icon.tsx를 처음 테스트에 끌어들이며 실측으로 발견).
   transformIgnorePatterns: [
-    '/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|msw|rettime|@mswjs|@open-draft|@bundled-es-modules|headers-polyfill|strict-event-emitter|outvariant|until-async))',
+    '/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|msw|rettime|@mswjs|@open-draft|@bundled-es-modules|headers-polyfill|strict-event-emitter|outvariant|until-async|uniwind))',
     '/node_modules/react-native-reanimated/plugin/',
     '/node_modules/@react-native/babel-preset/',
   ],

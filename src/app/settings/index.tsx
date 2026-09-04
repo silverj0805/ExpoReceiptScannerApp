@@ -1,5 +1,1 @@
-import PlaceholderScreen from '@/shared/components/PlaceholderScreen';
-
-export default function SettingsScreen() {
-  return <PlaceholderScreen name="Settings (설정)" />;
-}
+export { default } from '@/features/settings/screens/settings/SettingsScreen';

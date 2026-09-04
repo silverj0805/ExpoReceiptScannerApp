@@ -1,5 +1,1 @@
-import PlaceholderScreen from '@/shared/components/PlaceholderScreen';
-
-export default function LicenseScreen() {
-  return <PlaceholderScreen name="License (오픈소스 라이선스)" />;
-}
+export { default } from '@/features/settings/screens/license/LicenseScreen';
