@@ -10,22 +10,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import NativeReceiptScannerModule from "../../modules/native-receipt-scanner/src/NativeReceiptScannerModule";
+import NativeReceiptScannerModule from "../../../modules/native-receipt-scanner/src/NativeReceiptScannerModule";
 
 /**
- * 스파이크 검증용 최소 화면.
- * 목적: 촬영/갤러리 선택 → scanText 호출까지 엔드투엔드 1회 성공 확인.
- * 정식 UI가 아니라 검증용이라, 결과는 화면에 그대로 노출한다(가정하지 않고 실측하기 위함).
+ * Scan 탭 — Step 6/7 스파이크에서 검증한 촬영/갤러리 → OCR 파이프라인 그대로.
+ * 네비게이션 골격 태스크 범위상 UI는 아직 스파이크 형태 그대로 두고,
+ * 이후 features 이식 태스크에서 실제 ScanScreen 디자인으로 교체한다.
  */
-export default function ScanSpikeScreen() {
+export default function ScanScreen() {
   const [status, setStatus] = useState("대기 중");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [recognizedText, setRecognizedText] = useState<string | null>(null);
 
   const runScan = async (uri: string) => {
     setImageUri(uri);
-    // uri에 스킴(file://)이 포함돼 있는지 실측 — 원본 프로젝트(vision-camera)와 달리
-    // expo-image-picker가 어떤 형태로 주는지 가정하지 않고 화면에 그대로 노출한다.
     setStatus(`scanText 호출 중... (uri: ${uri})`);
     setRecognizedText(null);
 
