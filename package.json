@@ -8,6 +8,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-firebase/app": "^26.3.3",
     "@react-native-firebase/crashlytics": "^26.3.3",
+    "axios": "^1.20.0",
     "expo": "~57.0.19",
     "expo-build-properties": "~57.0.16",
     "expo-constants": "~57.0.17",
