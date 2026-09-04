@@ -1,3 +1,5 @@
+import '@/global.css';
+
 import { Stack, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
