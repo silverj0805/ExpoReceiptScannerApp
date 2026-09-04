@@ -30,8 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# 실제 값이 든 .env는 커밋하지 않는다 — .env.example만 추적해서 어떤 키가 필요한지 남겨둔다.
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
