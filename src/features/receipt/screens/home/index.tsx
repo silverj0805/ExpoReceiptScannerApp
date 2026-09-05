@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import HomeSecurityOnboarding from '@/features/appLock/settings/components/HomeSecurityOnboarding';
 import { receiptQueryFactory, receiptRepository } from '@/features/receipt/api';
 import { useCSSColorVariable } from '@/shared/hooks/useCSSColorVariable';
 
@@ -134,6 +135,7 @@ function HomeScreen() {
           />
         }
       />
+      <HomeSecurityOnboarding />
     </SafeAreaView>
   );
 }

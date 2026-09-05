@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 
 import type { Receipt } from '@/features/receipt/api/types/receipt';
 import type { ReceiptSummary } from '@/features/receipt/api/types/summary';
@@ -37,6 +37,28 @@ const renderHomeScreen = () => {
 };
 
 test('데이터 도착 전엔 로딩 상태를 보여준다', async () => {
+  // HomeSecurityOnboarding이 홈 화면에 붙으면서 render() 내부에서 플러시할
+  // 비동기 작업(보안 설정 조회)이 하나 늘었다 — 그 여파로 msw 응답이 render() await 안에서
+  // 같이 풀려버려서 "로딩 중" 순간을 못 잡는 경우가 생겼다(실측 확인). 응답에 짧은 지연을
+  // 둬서 로딩 상태가 확실히 보이는 순간을 만든다.
+  const summaryFixture: ReceiptSummary = {
+    total: 0,
+    deltaAmount: 0,
+    deltaPercent: 0,
+    byCategory: [],
+  };
+  const receiptsFixture: Receipt[] = [];
+  server.use(
+    http.get('*/receipts/summary', async () => {
+      await delay(50);
+      return HttpResponse.json(summaryFixture);
+    }),
+    http.get('*/receipts', async () => {
+      await delay(50);
+      return HttpResponse.json(receiptsFixture);
+    }),
+  );
+
   await renderHomeScreen();
 
   // ActivityIndicator 등 텍스트 없는 로딩 UI를 쓸 수 있어서 텍스트 대신 testID로 확인.
