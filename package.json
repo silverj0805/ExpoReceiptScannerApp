@@ -53,14 +53,18 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@react-native/jest-preset": "0.86.3",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "husky": "^9.1.7",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.5",
+    "lint-staged": "^16.2.3",
     "msw": "^2.15.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.1",
@@ -68,13 +72,22 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --reset-cache",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest --forceExit",
-    "generate:licenses": "node scripts/generateLicenseData.js"
+    "generate:licenses": "node scripts/generateLicenseData.js",
+    "prepare": "husky"
   },
-  "private": true
+  "private": true,
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
 }
