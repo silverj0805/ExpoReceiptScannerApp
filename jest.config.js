@@ -29,6 +29,10 @@ module.exports = {
     ...jestExpoPreset.moduleNameMapper,
     // Jest는 Metro의 CSS 파이프라인(uniwind)을 거치지 않으므로, .css import는 빈 모듈로 목 처리.
     '\\.css$': '<rootDir>/__mocks__/styleMock.js',
+    // react-native-keyboard-controller가 공식으로 제공하는 목(CLI와 동일). 네이티브
+    // 모듈이라 Jest 환경에서 그냥 import하면 "doesn't seem to be linked" 에러로 바로 던짐.
+    '^react-native-keyboard-controller$':
+      'react-native-keyboard-controller/jest',
   },
   transform: {
     ...jestExpoPreset.transform,

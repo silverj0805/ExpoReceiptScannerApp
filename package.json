@@ -31,6 +31,7 @@
     "expo-web-browser": "~57.0.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.87.0",
     "react-native": "0.86.3",
     "react-native-device-info": "^15.0.2",
     "react-native-error-boundary": "^3.1.0",
