@@ -54,7 +54,8 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "./plugins/withGoogleServicePlistAtProjectRoot"
+      "./plugins/withGoogleServicePlistAtProjectRoot",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
