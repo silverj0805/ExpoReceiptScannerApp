@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { getVersion } from 'react-native-device-info';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import SettingSecuritySection from '@/features/appLock/settings/components/SettingSecuritySection';
 import Icon from '@/shared/components/Icon';
 
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../../constants/urls';
@@ -20,7 +21,7 @@ function SettingsRow({
     <Pressable
       testID={testID}
       onPress={onPress}
-      className="flex-row items-center justify-between border-b border-[#e8e6e1] py-4"
+      className="flex-row items-center justify-between border-b border-[#e8e6e1] px-5 py-4"
     >
       <Text className="text-sm font-semibold text-black">{label}</Text>
       <Icon name="chevron-forward" size={18} colorClassName="accent-gray" />
@@ -59,7 +60,7 @@ function SettingsScreen() {
         <View className="w-5.5" />
       </View>
 
-      <ScrollView contentContainerClassName="px-5">
+      <ScrollView>
         <SettingsRow
           testID="settings-privacy-policy-row"
           label="개인정보처리방침"
@@ -76,7 +77,9 @@ function SettingsScreen() {
           onPress={goToLicense}
         />
 
-        <View className="flex-row items-center justify-between py-4">
+        <SettingSecuritySection />
+
+        <View className="flex-row items-center justify-between px-5 py-4">
           <Text className="text-sm font-semibold text-gray">앱 버전</Text>
           <Text testID="settings-app-version" className="text-sm text-gray">
             {getVersion()}
