@@ -1,6 +1,6 @@
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Icon from '@/shared/components/Icon';
@@ -19,6 +19,11 @@ interface SecuritySetupSheetProps {
  * 인증 설정 공통 Bottom Sheet — "어떤 방법으로 잠글까요?"
  * 홈 화면 최초 랜딩 온보딩과 설정 화면의 "변경하기" 양쪽에서 재사용한다.
  * 생체인증을 선택해도 PIN 등록은 항상 강제한다(대체 수단 공백 방지).
+ *
+ * 일반 BottomSheet가 아니라 BottomSheetModal을 쓴다 — 일반 BottomSheet는
+ * 렌더링된 위치(예: 홈 화면의 탭 콘텐츠 영역)를 기준으로만 꽉 차서, 하단 탭 바처럼
+ * 그 바깥에 있는 요소는 못 덮고 터치도 못 막는다(실측으로 확인함). BottomSheetModal은
+ * 루트의 BottomSheetModalProvider로 포털되어 진짜 화면 최상단에 렌더링된다.
  */
 function SecuritySetupSheet({
   visible,
@@ -30,10 +35,20 @@ function SecuritySetupSheet({
     state => state.setBiometricEnabled,
   );
   const insets = useSafeAreaInsets();
+  const sheetRef = useRef<ComponentRef<typeof BottomSheetModal>>(null);
+  // 한 번도 present()한 적 없는 시트에 dismiss()를 부르지 않기 위한 플래그.
+  const hasPresentedRef = useRef(false);
   const [pinRegisterVisible, setPinRegisterVisible] = useState(false);
   const [biometricChosen, setBiometricChosen] = useState(false);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (visible) {
+      sheetRef.current?.present();
+      hasPresentedRef.current = true;
+    } else if (hasPresentedRef.current) {
+      sheetRef.current?.dismiss();
+    }
+  }, [visible]);
 
   const canUseBiometric = isSupported && isEnrolled;
   // 생체인증을 아예 못 쓰는 기기면 선택지를 보여줄 이유가 없으니 바로 PIN 등록으로.
@@ -49,12 +64,30 @@ function SecuritySetupSheet({
     setPinRegisterVisible(true);
   };
 
+  // 컴포넌트 자신(SecuritySetupSheet)은 present/dismiss를 오가도 계속 마운트돼 있어서
+  // (내부 콘텐츠만 present/dismiss 때 마운트·언마운트됨), 다음에 다시 열었을 때
+  // 이전 선택 화면 상태가 남지 않도록 닫힐 때 직접 초기화해준다.
+  const handleDismiss = () => {
+    setPinRegisterVisible(false);
+    setBiometricChosen(false);
+    onClose();
+  };
+
+  // 닫기 버튼: handleDismiss()로 상태 초기화 + onClose()를 바로 부르고, 실제 시트도
+  // dismiss()로 닫는다. present/dismiss 흐름을 안 타는 mock 환경에서도 onClose는 즉시
+  // 확인 가능하게 하기 위함(SecuritySetupSheet.test.tsx의 mock 한계 주석 참고).
+  const handleClosePress = () => {
+    handleDismiss();
+    sheetRef.current?.dismiss();
+  };
+
   return (
-    <BottomSheet
+    <BottomSheetModal
+      ref={sheetRef}
       index={0}
       snapPoints={['100%']}
       enableDynamicSizing={false}
-      onClose={onClose}
+      onDismiss={handleDismiss}
       enablePanDownToClose={false}
       handleIndicatorStyle={{ opacity: 0 }}
       backgroundStyle={{
@@ -66,6 +99,16 @@ function SecuritySetupSheet({
         className="gap-5 px-6"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 40 }}
       >
+        <View className="w-full flex-row justify-end">
+          <Pressable
+            testID="security-sheet-close-button"
+            onPress={handleClosePress}
+            hitSlop={8}
+          >
+            <Icon name="close" size={24} colorClassName="accent-black" />
+          </Pressable>
+        </View>
+
         {showRegister ? (
           <PinRegisterForm
             biometricAlreadyEnabled={biometricChosen}
@@ -134,7 +177,7 @@ function SecuritySetupSheet({
           </View>
         )}
       </BottomSheetView>
-    </BottomSheet>
+    </BottomSheetModal>
   );
 }
 
