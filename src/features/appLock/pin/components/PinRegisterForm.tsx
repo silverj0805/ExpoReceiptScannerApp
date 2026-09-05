@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
+import Icon from '@/shared/components/Icon';
+
 import PinDots from '../shared/components/PinDots';
 import PinKeypad from '../shared/components/PinKeypad';
 import { PIN_LENGTH } from '../shared/constants';
@@ -63,6 +65,24 @@ function PinRegisterForm({
 
   return (
     <View className="items-center gap-6 px-6 py-4">
+      <View className="flex-row items-center gap-1.5">
+        <View className="h-5.5 w-5.5 items-center justify-center rounded-full bg-primary">
+          {stage === 'confirm' && (
+            <Icon name="checkmark" size={12} colorClassName="accent-white" />
+          )}
+        </View>
+        <View
+          className={`h-[1.5px] w-5 ${stage === 'confirm' ? 'bg-primary' : 'bg-[#c9c6bf]'}`}
+        />
+        <View
+          className={`h-5.5 w-5.5 rounded-full ${
+            stage === 'confirm'
+              ? 'bg-primary'
+              : 'border-[1.5px] border-[#c9c6bf]'
+          }`}
+        />
+      </View>
+
       {biometricAlreadyEnabled && (
         <View className="w-full rounded-2xl bg-primary/10 px-4 py-3">
           <Text className="text-center text-xs leading-5 text-primary">

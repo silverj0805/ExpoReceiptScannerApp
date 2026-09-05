@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
@@ -49,20 +50,22 @@ function ScreenTracker() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <ErrorBoundary onError={handleError}>
-          <ScreenTracker />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="confirm" />
-            <Stack.Screen name="receipts/[id]" />
-            <Stack.Screen name="settings/index" />
-            <Stack.Screen name="settings/license" />
-            <Stack.Screen name="settings/webview" />
-          </Stack>
-        </ErrorBoundary>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <ErrorBoundary onError={handleError}>
+            <ScreenTracker />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="confirm" />
+              <Stack.Screen name="receipts/[id]" />
+              <Stack.Screen name="settings/index" />
+              <Stack.Screen name="settings/license" />
+              <Stack.Screen name="settings/webview" />
+            </Stack>
+          </ErrorBoundary>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

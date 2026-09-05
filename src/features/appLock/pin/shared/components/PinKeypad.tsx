@@ -1,5 +1,7 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import Icon from '@/shared/components/Icon';
+
 const KEYPAD_ROWS = [
   ['1', '2', '3'],
   ['4', '5', '6'],
@@ -55,7 +57,11 @@ function PinKeypad({
           onPress={() => !disabled && onPressDelete()}
           className="h-16 w-16 items-center justify-center"
         >
-          <Text className="text-base font-medium text-black">지우기</Text>
+          <Icon
+            name="backspace-outline"
+            size={24}
+            colorClassName="accent-black"
+          />
         </TouchableOpacity>
       </View>
     </View>
