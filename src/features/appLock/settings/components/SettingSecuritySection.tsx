@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import Icon from '@/shared/components/Icon';
+import useBiometricAuth from '../../biometric/hooks/useBiometricAuth';
+import { clearPin } from '../../pin/utils/pinStorage';
 import useSecuritySetupStatus from '../hooks/useSecuritySetupStatus';
 import { useSecuritySettingsStore } from '../store/useSecuritySettingsStore';
 import SecuritySetupSheet from './SecuritySetupSheet';
@@ -30,31 +32,81 @@ const Button = ({
 };
 
 const SettingSecuritySection = () => {
-  const { isSecuritySetUp } = useSecuritySetupStatus();
+  const { isSupported, isEnrolled } = useBiometricAuth();
+  const { isSecuritySetUp, refetch } = useSecuritySetupStatus();
   const biometricEnabled = useSecuritySettingsStore(
     state => state.biometricEnabled,
   );
+  const setBiometricEnabled = useSecuritySettingsStore(
+    state => state.setBiometricEnabled,
+  );
   const [securitySheetVisible, setSecuritySheetVisible] = useState(false);
+
+  const canUseBiometric = isSupported && isEnrolled;
 
   const openSecuritySheet = () => setSecuritySheetVisible(true);
   const closeSecuritySheet = () => setSecuritySheetVisible(false);
 
+  // PIN/생체인증을 모두 지우기만 한다 — 초기화 직후 설정 Sheet를 자동으로 다시 열지 않는다
+  // (사용자가 "설정하기"를 눌러 직접 다시 시작하게 둔다).
+  const handleReset = () => {
+    Alert.alert(
+      '인증을 초기화할까요?',
+      'PIN과 생체인증 설정이 모두 삭제돼요.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '초기화',
+          style: 'destructive',
+          onPress: async () => {
+            await clearPin();
+            setBiometricEnabled(false);
+            refetch();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <>
       {isSecuritySetUp ? (
-        <View className={containerClassName}>
-          <View>
-            <Text className="text-xs text-gray">보안 잠금 방법</Text>
-            <Text className="mt-0.5 text-sm font-bold text-black">
-              {biometricEnabled ? '생체인식' : 'PIN 번호'}
+        <>
+          <View className={containerClassName}>
+            <View>
+              <Text className="text-xs text-gray">보안 잠금 방법</Text>
+              <Text className="mt-0.5 text-sm font-bold text-black">
+                {biometricEnabled ? '생체인식' : 'PIN 번호'}
+              </Text>
+            </View>
+            {canUseBiometric && (
+              <Button
+                testID="settings-security-change-button"
+                onPress={openSecuritySheet}
+                text="변경하기"
+              />
+            )}
+          </View>
+
+          <View className="flex-row items-center justify-between bg-[rgba(179,38,30,0.05)] px-5 py-4">
+            <Text className="text-sm font-semibold text-black">
+              인증 초기화
+            </Text>
+            <Pressable
+              testID="settings-security-reset-button"
+              onPress={handleReset}
+              className="rounded-xl border-[1.5px] border-[#B3261E] px-3.5 py-1.5"
+            >
+              <Text className="text-xs font-bold text-[#B3261E]">초기화</Text>
+            </Pressable>
+          </View>
+          <View className="border-b border-[#e8e6e1] bg-[rgba(179,38,30,0.05)] px-5 pt-1 pb-4">
+            <Text className="text-[11.5px] leading-relaxed text-gray">
+              PIN이나 Face ID를 바꾸고 싶으면, 별도 변경 없이{'\n'}초기화 후
+              다시 등록해주세요
             </Text>
           </View>
-          <Button
-            testID="settings-security-change-button"
-            onPress={openSecuritySheet}
-            text="변경하기"
-          />
-        </View>
+        </>
       ) : (
         <View className={containerClassName}>
           <View className="flex-row items-center gap-2">

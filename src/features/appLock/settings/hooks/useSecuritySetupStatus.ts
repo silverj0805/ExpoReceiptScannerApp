@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { hasPinSet } from '../../pin/utils/pinStorage';
 import { useSecuritySettingsStore } from '../store/useSecuritySettingsStore';
@@ -8,6 +8,8 @@ interface UseSecuritySetupStatusResult {
   isSecuritySetUp: boolean;
   /** PIN 등록 여부를 SecureStore에서 조회하는 중인지. */
   isLoading: boolean;
+  /** PIN 등록 여부를 SecureStore에서 다시 조회한다("인증 초기화" 등으로 상태가 바뀐 뒤 씀). */
+  refetch: () => void;
 }
 
 /**
@@ -32,9 +34,14 @@ function useSecuritySetupStatus(): UseSecuritySetupStatusResult {
     };
   }, []);
 
+  const refetch = useCallback(() => {
+    hasPinSet().then(setPinSet);
+  }, []);
+
   return {
     isSecuritySetUp: pinSet === true || biometricEnabled,
     isLoading: pinSet === null,
+    refetch,
   };
 }
 

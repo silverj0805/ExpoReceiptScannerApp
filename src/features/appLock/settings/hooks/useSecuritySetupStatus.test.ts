@@ -74,3 +74,25 @@ test('hasPinSet() 조회가 끝나기 전엔 isLoading이 true다', async () => 
 
   expect(result.current.isLoading).toBe(false);
 });
+
+test('refetch()를 부르면 hasPinSet()을 다시 조회해서 isSecuritySetUp을 갱신한다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
+
+  const { result } = await renderHook(() => useSecuritySetupStatus());
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  expect(result.current.isSecuritySetUp).toBe(true);
+
+  // "인증 초기화" 등으로 PIN이 지워진 뒤 refetch()를 부르는 상황을 흉내낸다.
+  mockedHasPinSet.mockResolvedValue(false);
+
+  await act(async () => {
+    result.current.refetch();
+    await Promise.resolve();
+  });
+
+  expect(result.current.isSecuritySetUp).toBe(false);
+});

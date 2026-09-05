@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { getVersion } from 'react-native-device-info';
 
+import useBiometricAuth from '@/features/appLock/biometric/hooks/useBiometricAuth';
 import useSecuritySetupStatus from '@/features/appLock/settings/hooks/useSecuritySetupStatus';
 import { useSecuritySettingsStore } from '@/features/appLock/settings/store/useSecuritySettingsStore';
 
@@ -20,6 +21,9 @@ const mockedGetVersion = getVersion as jest.Mock;
 
 jest.mock('@/features/appLock/settings/hooks/useSecuritySetupStatus');
 const mockedUseSecuritySetupStatus = useSecuritySetupStatus as jest.Mock;
+
+jest.mock('@/features/appLock/biometric/hooks/useBiometricAuth');
+const mockedUseBiometricAuth = useBiometricAuth as jest.Mock;
 
 // SecuritySetupSheet 자체 동작(생체인증 선택/PIN 등록)은 appLock 쪽에서 이미 테스트했으니,
 // 여기서는 "설정 화면이 이 Sheet를 여는지"만 확인하면 되므로 가벼운 스텁으로 대체한다.
@@ -41,6 +45,13 @@ beforeEach(() => {
   mockedUseSecuritySetupStatus.mockReturnValue({
     isSecuritySetUp: false,
     isLoading: false,
+  });
+  // 기본값은 생체인증 지원+등록된 기기 — "변경하기" 버튼이 보이는 게 기본 케이스이므로.
+  // 미지원/미등록 케이스는 SettingSecuritySection.test.tsx에서 직접 다룬다.
+  mockedUseBiometricAuth.mockReturnValue({
+    isSupported: true,
+    isEnrolled: true,
+    authenticate: jest.fn(),
   });
 });
 
