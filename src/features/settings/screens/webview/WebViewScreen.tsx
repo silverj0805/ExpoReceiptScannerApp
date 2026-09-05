@@ -1,6 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -12,7 +18,10 @@ import Icon from '@/shared/components/Icon';
  * 쿼리파라미터(useLocalSearchParams)로 동일한 값을 받는다.
  */
 function WebViewScreen() {
-  const { url, title } = useLocalSearchParams<{ url?: string; title?: string }>();
+  const { url, title } = useLocalSearchParams<{
+    url?: string;
+    title?: string;
+  }>();
 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);

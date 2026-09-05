@@ -1,10 +1,9 @@
 import { extractMerchant } from './extractMerchant';
 
 test('점포명 라벨 기준으로 가맹점을 추출한다', () => {
-  const rawText = [
-    '점포명 : 스타벅스 강남점',
-    '서울 강남구 테헤란로 123',
-  ].join('\n');
+  const rawText = ['점포명 : 스타벅스 강남점', '서울 강남구 테헤란로 123'].join(
+    '\n',
+  );
 
   expect(extractMerchant(rawText)).toBe('스타벅스 강남점');
 });

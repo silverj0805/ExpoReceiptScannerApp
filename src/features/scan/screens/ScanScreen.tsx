@@ -118,7 +118,7 @@ function ScanScreen() {
         </View>
 
         {/* 하단 컨트롤 */}
-        <View className="absolute inset-x-0 bottom-0 flex-row items-center justify-between px-7 pb-10 pt-5 bg-black">
+        <View className="absolute inset-x-0 bottom-0 flex-row items-center justify-between bg-black px-7 pt-5 pb-10">
           <GalleryButton openGallery={openGallery} />
           <CaptureButton capture={capture} isCapturing={isCapturing} />
           <View className="h-12 w-12" />

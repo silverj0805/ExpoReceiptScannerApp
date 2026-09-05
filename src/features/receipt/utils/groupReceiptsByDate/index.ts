@@ -18,7 +18,11 @@ export function groupReceiptsByDate(receipts: Receipt[]): ReceiptGroup[] {
     const existingIndex = indexByDate.get(receipt.date);
     if (existingIndex === undefined) {
       indexByDate.set(receipt.date, groups.length);
-      groups.push({ date: receipt.date, total: receipt.amount, items: [receipt] });
+      groups.push({
+        date: receipt.date,
+        total: receipt.amount,
+        items: [receipt],
+      });
     } else {
       const group = groups[existingIndex];
       group.total += receipt.amount;

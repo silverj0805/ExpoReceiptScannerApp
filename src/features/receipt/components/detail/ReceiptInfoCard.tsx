@@ -25,10 +25,7 @@ const ReceiptInfoCard = ({ receipt }: ReceiptInfoCardProps) => {
           className="rounded-full px-2.5 py-1"
           style={{ backgroundColor: info.bg }}
         >
-          <Text
-            className="text-[11px] font-bold"
-            style={{ color: info.color }}
-          >
+          <Text className="text-[11px] font-bold" style={{ color: info.color }}>
             {info.label}
           </Text>
         </View>

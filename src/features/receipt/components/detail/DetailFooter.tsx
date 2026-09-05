@@ -13,7 +13,7 @@ const DetailFooter = ({
   onEdit,
   onDelete,
 }: DetailFooterProps) => (
-  <View className="border-t border-[#e8e6e1] bg-background px-5 pb-7 pt-4">
+  <View className="border-t border-[#e8e6e1] bg-background px-5 pt-4 pb-7">
     {deleteError ? (
       <Text className="mb-2 text-center text-xs text-[#B3261E]">
         {deleteError}

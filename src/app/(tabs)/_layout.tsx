@@ -8,12 +8,15 @@ import SettingsTabButton from '@/shared/components/tabBars/SettingsTabButton';
 import WriteTabButton from '@/shared/components/tabBars/WriteTabButton';
 
 type TabIconName =
-  | 'home-outline'
-  | 'receipt-outline'
-  | 'create-outline'
-  | 'settings-outline';
+  'home-outline' | 'receipt-outline' | 'create-outline' | 'settings-outline';
 
-function TabBarIcon({ name, focused }: { name: TabIconName; focused: boolean }) {
+function TabBarIcon({
+  name,
+  focused,
+}: {
+  name: TabIconName;
+  focused: boolean;
+}) {
   return (
     <Icon
       name={name}

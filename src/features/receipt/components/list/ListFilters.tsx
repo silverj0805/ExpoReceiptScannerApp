@@ -31,7 +31,7 @@ const ListFilters = ({
   onToggleCategory,
   onSelectAllCategories,
 }: ListFiltersProps) => (
-  <View className="mb-5 gap-3 px-5 pb-2 pt-4">
+  <View className="mb-5 gap-3 px-5 pt-4 pb-2">
     <Text className="text-xl font-extrabold text-black">전체 내역</Text>
 
     <View className="flex-row rounded-xl border border-[#e8e6e1] bg-white p-1">

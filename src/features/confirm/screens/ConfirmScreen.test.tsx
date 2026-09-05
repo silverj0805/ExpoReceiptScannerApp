@@ -21,10 +21,13 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
 }));
 
-jest.mock('../../../../modules/native-receipt-scanner/src/NativeReceiptScannerModule', () => ({
-  __esModule: true,
-  default: { scanText: jest.fn() },
-}));
+jest.mock(
+  '../../../../modules/native-receipt-scanner/src/NativeReceiptScannerModule',
+  () => ({
+    __esModule: true,
+    default: { scanText: jest.fn() },
+  }),
+);
 
 jest.mock('../utils/deleteTempImage', () => ({
   deleteTempImage: jest.fn(),

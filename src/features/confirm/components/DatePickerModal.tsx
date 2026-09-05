@@ -39,7 +39,7 @@ const DatePickerModal = ({
         className="bg-black/40"
         onPress={onDismiss}
       />
-      <View className="rounded-t-3xl bg-white px-5 pb-8 pt-3">
+      <View className="rounded-t-3xl bg-white px-5 pt-3 pb-8">
         <View className="mb-2 items-center">
           <View className="h-1 w-9 rounded-full bg-[#e8e6e1]" />
         </View>

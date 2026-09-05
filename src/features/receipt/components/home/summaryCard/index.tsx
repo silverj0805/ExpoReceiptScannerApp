@@ -66,7 +66,7 @@ function SummaryCard({
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: info.color }}
                   />
-                  <Text className="text-xs text-gray font-semibold">
+                  <Text className="text-xs font-semibold text-gray">
                     {info.label} {percent}%
                   </Text>
                 </View>

@@ -58,5 +58,7 @@ test('피커 값을 바꾸면 onValueChange를 호출한다', async () => {
     '2026-08-25T12:00:00',
   );
 
-  expect(mockOnValueChange).toHaveBeenCalledWith(new Date('2026-08-25T12:00:00'));
+  expect(mockOnValueChange).toHaveBeenCalledWith(
+    new Date('2026-08-25T12:00:00'),
+  );
 });

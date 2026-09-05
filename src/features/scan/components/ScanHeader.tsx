@@ -8,7 +8,7 @@ interface ScanHeaderProps {
 
 const ScanHeader = ({ close }: ScanHeaderProps) => {
   return (
-    <View className="flex-row items-center justify-between p-5 bg-black">
+    <View className="flex-row items-center justify-between bg-black p-5">
       <Pressable
         testID="scan-close-button"
         onPress={close}

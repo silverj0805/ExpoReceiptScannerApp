@@ -351,7 +351,9 @@ test('리스트 끝에 도달하면 다음 페이지를 요청한다', async () 
   await waitFor(() => {
     expect(receiptsHandler).toHaveBeenCalledTimes(2);
   });
-  const secondRequestUrl = new URL(receiptsHandler.mock.calls[1][0].request.url);
+  const secondRequestUrl = new URL(
+    receiptsHandler.mock.calls[1][0].request.url,
+  );
   expect(secondRequestUrl.searchParams.get('skip')).toBe('10');
 });
 

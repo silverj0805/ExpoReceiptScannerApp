@@ -1,15 +1,15 @@
-import "@/global.css";
+import '@/global.css';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, usePathname } from "expo-router";
-import { useEffect } from "react";
-import ErrorBoundary from "react-native-error-boundary";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Stack, usePathname } from 'expo-router';
+import { useEffect } from 'react';
+import ErrorBoundary from 'react-native-error-boundary';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
   recordErrorWithContext,
   setScreenForTracking,
-} from "@/shared/firebase/crashlyticsRecorder";
+} from '@/shared/firebase/crashlyticsRecorder';
 
 /**
  * 루트 레이아웃 — CLI 버전의 App.tsx + RootNavigator를 합친 역할.
@@ -23,7 +23,7 @@ const queryClient = new QueryClient();
 
 function handleError(error: Error, stackTrace: string) {
   if (__DEV__) {
-    console.error("⚠️ ErrorBoundary caught an error:", error, stackTrace);
+    console.error('⚠️ ErrorBoundary caught an error:', error, stackTrace);
   }
   recordErrorWithContext(error, {
     extra: { stackTrace: stackTrace.slice(0, 500) },

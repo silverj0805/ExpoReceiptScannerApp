@@ -18,9 +18,9 @@ const ListHeaderComponent = ({
 }: ListHeaderComponentProps) => (
   <View className="gap-6">
     <View className="gap-2">
-      <View className="flex-row   gap-1 items-baseline">
+      <View className="flex-row items-baseline gap-1">
         <Text className="text-2xl font-bold">🧸가계부</Text>
-        <Text className="text-xs text-gray font0-semibold">
+        <Text className="font0-semibold text-xs text-gray">
           오늘도 잘 모으곰 부자되세요!
         </Text>
       </View>

@@ -21,7 +21,7 @@ const ReceiptItem = ({ item, onPress, testID }: ReceiptItemProps) => {
           <Text className="text-lg font-bold">{item.merchant}</Text>
           <View className="flex-row items-center gap-1">
             <View
-              className="py-0.5 px-2 rounded-lg"
+              className="rounded-lg px-2 py-0.5"
               style={{ backgroundColor: info.bg }}
             >
               <Text className="text-xs font-bold" style={{ color: info.color }}>

@@ -17,7 +17,7 @@ const WiseSaying = () => {
 
   return (
     <Text
-      className="text-sm font-semibold text-[#6a9480] bg-amber-50 self-start"
+      className="self-start bg-amber-50 text-sm font-semibold text-[#6a9480]"
       style={{ transform: [{ skewX: '-8deg' }] }}
     >
       💡&quot;{WISE_SAYINGS[index]}&quot;

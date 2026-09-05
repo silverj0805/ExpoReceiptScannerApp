@@ -47,7 +47,7 @@ function ConfirmScreen() {
   const isDirectEntry = !isEditMode && !imageUri;
 
   const [rawText, setRawText] = useState<string | null>(
-    isEditMode ? info.rawText ?? '' : isDirectEntry ? '' : null,
+    isEditMode ? (info.rawText ?? '') : isDirectEntry ? '' : null,
   );
   const [manualEntry, setManualEntry] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
@@ -149,8 +149,8 @@ function ConfirmScreen() {
   const title = isEditMode
     ? '영수증 수정'
     : isDirectEntry
-    ? '영수증 기록'
-    : '인식 결과 확인';
+      ? '영수증 기록'
+      : '인식 결과 확인';
 
   return (
     <SafeAreaView
