@@ -1,14 +1,13 @@
 {
   "expo": {
-    "name": "ExpoReceiptScannerApp",
-    "slug": "ExpoReceiptScannerApp",
+    "name": "모으곰(Mogom)",
+    "slug": "mogom",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/1024.png",
     "scheme": "exporeceiptscannerapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.silverj0805.exporeceiptscannerapp",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
@@ -16,26 +15,24 @@
       "package": "com.silverj0805.exporeceiptscannerapp",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#CFE9CE",
+        "foregroundImage": "./assets/1024.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": ["android.permission.CAMERA"]
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/1024.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#CFE9CE",
+          "image": "./assets/1024.png",
+          "imageWidth": 220
         }
       ],
       [
