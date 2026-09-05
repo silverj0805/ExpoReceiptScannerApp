@@ -10,6 +10,8 @@ const SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 interface UseAppLockResult {
   /** true면 잠금 화면(풀스크린 오버레이)을 보여줘야 한다. */
   isLocked: boolean;
+  /** 이번 세션에 한 번이라도 인증에 성공한 적 있는지. 한 번 true가 되면 다시 false로 안 돌아간다. */
+  hasUnlockedOnce: boolean;
   /** 기기에 지문/얼굴 인식 센서가 있는지. */
   isSupported: boolean;
   /** 그 센서에 실제로 생체 정보가 등록돼 있는지. */
@@ -40,6 +42,7 @@ interface UseAppLockResult {
  */
 function useAppLock(): UseAppLockResult {
   const [isLocked, setIsLocked] = useState(true);
+  const [hasUnlockedOnce, setHasUnlockedOnce] = useState(false);
   const backgroundedAtRef = useRef<number | null>(null);
 
   const biometric = useBiometricAuth();
@@ -74,6 +77,7 @@ function useAppLock(): UseAppLockResult {
     const result = await biometric.authenticate();
     if (result.success) {
       setIsLocked(false);
+      setHasUnlockedOnce(true);
       pinLock.reset();
     }
     return result;
@@ -84,6 +88,7 @@ function useAppLock(): UseAppLockResult {
       const success = await pinLock.authenticate(pin);
       if (success) {
         setIsLocked(false);
+        setHasUnlockedOnce(true);
       }
       return success;
     },
@@ -92,6 +97,7 @@ function useAppLock(): UseAppLockResult {
 
   return {
     isLocked, // true면 잠금 오버레이를 띄워야 함
+    hasUnlockedOnce, // false면 트리 미마운트
     isSupported: biometric.isSupported, // 생체인증 하드웨어 지원 여부
     isEnrolled: biometric.isEnrolled, // 생체인증 하드웨어 상태
     isPinLockedOut: pinLock.isPinLockedOut, // 제한까지 남은 시도 횟수

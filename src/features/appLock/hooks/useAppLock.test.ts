@@ -61,6 +61,65 @@ test('마운트 직후엔 항상 잠긴 상태로 시작한다', async () => {
   expect(result.current.isLocked).toBe(true);
 });
 
+test('마운트 직후엔 hasUnlockedOnce가 false다', async () => {
+  const { result } = await renderHook(() => useAppLock());
+
+  expect(result.current.hasUnlockedOnce).toBe(false);
+});
+
+test('생체인증으로 최초 성공하면 hasUnlockedOnce가 true가 된다', async () => {
+  biometricAuthenticate.mockResolvedValue({
+    success: true,
+    isLockedOut: false,
+  });
+  const { result } = await renderHook(() => useAppLock());
+
+  await act(async () => {
+    await result.current.authenticateWithBiometrics();
+  });
+
+  expect(result.current.hasUnlockedOnce).toBe(true);
+});
+
+test('PIN으로 최초 성공하면 hasUnlockedOnce가 true가 된다', async () => {
+  pinAuthenticate.mockResolvedValue(true);
+  const { result } = await renderHook(() => useAppLock());
+
+  await act(async () => {
+    await result.current.authenticateWithPin('1234');
+  });
+
+  expect(result.current.hasUnlockedOnce).toBe(true);
+});
+
+test('한 번 unlock된 뒤 5분 이상 백그라운드로 재잠금돼도 hasUnlockedOnce는 true로 유지된다', async () => {
+  jest.useFakeTimers();
+  biometricAuthenticate.mockResolvedValue({
+    success: true,
+    isLockedOut: false,
+  });
+  const { result } = await renderHook(() => useAppLock());
+  await act(async () => {
+    await result.current.authenticateWithBiometrics();
+  });
+  expect(result.current.hasUnlockedOnce).toBe(true);
+
+  const handler = getAppStateHandler();
+  await act(async () => {
+    handler('background');
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(6 * 60 * 1000);
+  });
+  await act(async () => {
+    handler('active');
+  });
+
+  expect(result.current.isLocked).toBe(true);
+  expect(result.current.hasUnlockedOnce).toBe(true);
+  jest.useRealTimers();
+});
+
 test('useBiometricAuth의 지원·등록 여부를 그대로 반영한다', async () => {
   mockedUseBiometricAuth.mockReturnValue({
     isSupported: false,
