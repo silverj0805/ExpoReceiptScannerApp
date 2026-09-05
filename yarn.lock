@@ -7564,6 +7564,16 @@ react-native-linear-gradient@^2.8.3:
   resolved "https://registry.yarnpkg.com/react-native-linear-gradient/-/react-native-linear-gradient-2.8.3.tgz#9a116649f86d74747304ee13db325e20b21e564f"
   integrity sha512-KflAXZcEg54PXkLyflaSZQ3PJp4uC4whM7nT/Uot9m0e/qxFV3p6uor1983D1YOBJbJN7rrWdqIjq0T42jOJyA==
 
+react-native-nitro-image@^0.15.2:
+  version "0.15.2"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-image/-/react-native-nitro-image-0.15.2.tgz#d7807f4a12ee7ecbc94990b2290d83b16fef9165"
+  integrity sha512-WiaGnORmfNIIqtRJW76TWYNet1YZx1MWDlSOxd0jfcIBN4KjkVVMDVpvO01eCfpxKVG0ez9nA2iLQkPVlGFj+A==
+
+react-native-nitro-modules@^0.37.1:
+  version "0.37.1"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.37.1.tgz#368bda3038ebe796b219d98e0a364f9166e2cc7c"
+  integrity sha512-KpW6EQVQ/bfegpCGxN9Be+ndvsfj56t4IESEvCASu9gWpJa/NDfHpIeIwCOvZQ3eXmLEj6YD4wCLqcC1FJPr2w==
+
 react-native-reanimated@4.5.1:
   version "4.5.1"
   resolved "https://registry.yarnpkg.com/react-native-reanimated/-/react-native-reanimated-4.5.1.tgz#be81ed3a96bf70baeeccdc24d3350883099b7dd3"
@@ -7597,6 +7607,11 @@ react-native-skeleton-placeholder@^5.2.4:
   version "5.2.4"
   resolved "https://registry.yarnpkg.com/react-native-skeleton-placeholder/-/react-native-skeleton-placeholder-5.2.4.tgz#a654fa083ff274a39c763e086f8a850c556d4c95"
   integrity sha512-OZntVq1hU1UX33FltxK2ezT2v9vHIhV8YnEbnMWUCvxT0N9OsgD1qxiHm6qb9YRJVgq2o5z3S7dNPsPnDF/jNg==
+
+react-native-vision-camera@^5.2.3:
+  version "5.2.3"
+  resolved "https://registry.yarnpkg.com/react-native-vision-camera/-/react-native-vision-camera-5.2.3.tgz#8b489ae2939dbebc441917069fc0c3146f49aa93"
+  integrity sha512-OHjgM8BPzxppTqbF1FEltj+fxvisj4xdghM7ypoT1p6cOe28HByhOJP1c7LkBiUiZuotbsdbQwGdJ8nU7ZvPzA==
 
 react-native-web@~0.21.0:
   version "0.21.2"
