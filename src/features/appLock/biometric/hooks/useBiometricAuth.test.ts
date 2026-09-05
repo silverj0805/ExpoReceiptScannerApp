@@ -40,29 +40,44 @@ test('지원·등록돼 있으면 true로 반영된다', async () => {
   });
 });
 
-test('생체인증에 성공하면 true를 반환한다', async () => {
+test('생체인증에 성공하면 success: true, isLockedOut: false를 반환한다', async () => {
   mockedAuthenticate.mockResolvedValue({ success: true });
   const { result } = await renderHook(() => useBiometricAuth());
 
-  let success = false;
+  let authResult;
   await act(async () => {
-    success = await result.current.authenticate();
+    authResult = await result.current.authenticate();
   });
 
-  expect(success).toBe(true);
+  expect(authResult).toEqual({ success: true, isLockedOut: false });
 });
 
-test('생체인증에 실패하면 false를 반환한다', async () => {
+test('일반 실패(사용자 취소 등)면 success: false, isLockedOut: false를 반환한다', async () => {
   mockedAuthenticate.mockResolvedValue({
     success: false,
     error: 'user_cancel',
   });
   const { result } = await renderHook(() => useBiometricAuth());
 
-  let success = true;
+  let authResult;
   await act(async () => {
-    success = await result.current.authenticate();
+    authResult = await result.current.authenticate();
   });
 
-  expect(success).toBe(false);
+  expect(authResult).toEqual({ success: false, isLockedOut: false });
+});
+
+test('OS가 이미 생체인증을 잠근 상태(lockout)면 isLockedOut: true를 반환한다', async () => {
+  mockedAuthenticate.mockResolvedValue({
+    success: false,
+    error: 'lockout',
+  });
+  const { result } = await renderHook(() => useBiometricAuth());
+
+  let authResult;
+  await act(async () => {
+    authResult = await result.current.authenticate();
+  });
+
+  expect(authResult).toEqual({ success: false, isLockedOut: true });
 });

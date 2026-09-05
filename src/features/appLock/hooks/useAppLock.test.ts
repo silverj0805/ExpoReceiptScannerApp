@@ -75,7 +75,10 @@ test('useBiometricAuth의 지원·등록 여부를 그대로 반영한다', asyn
 });
 
 test('생체인증에 성공하면 잠금이 풀리고 PIN 실패 기록이 초기화된다', async () => {
-  biometricAuthenticate.mockResolvedValue(true);
+  biometricAuthenticate.mockResolvedValue({
+    success: true,
+    isLockedOut: false,
+  });
   const { result } = await renderHook(() => useAppLock());
 
   await act(async () => {
@@ -87,13 +90,32 @@ test('생체인증에 성공하면 잠금이 풀리고 PIN 실패 기록이 초�
 });
 
 test('생체인증에 실패하면 잠긴 상태 그대로다', async () => {
-  biometricAuthenticate.mockResolvedValue(false);
+  biometricAuthenticate.mockResolvedValue({
+    success: false,
+    isLockedOut: false,
+  });
   const { result } = await renderHook(() => useAppLock());
 
   await act(async () => {
     await result.current.authenticateWithBiometrics();
   });
 
+  expect(result.current.isLocked).toBe(true);
+});
+
+test('생체인증이 OS 레벨 lockout이면 그 신호를 그대로 전파한다', async () => {
+  biometricAuthenticate.mockResolvedValue({
+    success: false,
+    isLockedOut: true,
+  });
+  const { result } = await renderHook(() => useAppLock());
+
+  let authResult;
+  await act(async () => {
+    authResult = await result.current.authenticateWithBiometrics();
+  });
+
+  expect(authResult).toEqual({ success: false, isLockedOut: true });
   expect(result.current.isLocked).toBe(true);
 });
 
@@ -144,7 +166,10 @@ test('PIN 시도 횟수 제한 상태(isPinLockedOut/pinLockoutRemainingMs)를 �
 
 test('백그라운드로 5분 미만 있다 돌아오면 다시 잠기지 않는다', async () => {
   jest.useFakeTimers();
-  biometricAuthenticate.mockResolvedValue(true);
+  biometricAuthenticate.mockResolvedValue({
+    success: true,
+    isLockedOut: false,
+  });
   const { result } = await renderHook(() => useAppLock());
   await act(async () => {
     await result.current.authenticateWithBiometrics();
@@ -168,7 +193,10 @@ test('백그라운드로 5분 미만 있다 돌아오면 다시 잠기지 않는
 
 test('백그라운드로 5분 이상 있다 돌아오면 다시 잠긴다', async () => {
   jest.useFakeTimers();
-  biometricAuthenticate.mockResolvedValue(true);
+  biometricAuthenticate.mockResolvedValue({
+    success: true,
+    isLockedOut: false,
+  });
   const { result } = await renderHook(() => useAppLock());
   await act(async () => {
     await result.current.authenticateWithBiometrics();

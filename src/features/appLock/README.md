@@ -32,7 +32,7 @@ src/features/appLock/
 └── hooks/useAppLock.ts             # isLocked + 세션(5분) 타임아웃 + 위 두 훅을 조합
 ```
 
-- **`useBiometricAuth`**: `expo-local-authentication`만 의존. 하드웨어 지원·등록 여부와 `authenticate()`(성공/실패만 반환)를 제공. 잠금 상태는 모른다.
+- **`useBiometricAuth`**: `expo-local-authentication`만 의존. 하드웨어 지원·등록 여부와 `authenticate()`(`{ success, isLockedOut }` 반환 — `isLockedOut`은 OS가 5회 연속 실패 등으로 생체인증을 이미 잠근 상태인지)를 제공. 잠금 상태는 모른다.
 - **`usePinLock`**: `pinStorage`만 의존. PIN 검증, PIN 5회 실패 시 5분 잠금, 남은 시도 횟수·잠금 해제까지 남은 시간을 제공. 잠금 상태는 모른다.
 - **`useAppLock`**: 위 두 훅을 조합하는 오케스트레이터. "지금 잠겨 있는지"와 "언제 다시 잠글지(백그라운드 5분)"만 책임지고, 실제 인증 로직은 전혀 모른다.
 

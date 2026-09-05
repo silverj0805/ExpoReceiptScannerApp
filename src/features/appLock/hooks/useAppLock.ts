@@ -20,8 +20,11 @@ interface UseAppLockResult {
   remainingPinAttempts: number;
   /** 제한이 풀리기까지 남은 시간(ms). 걸려 있지 않으면 null. */
   pinLockoutRemainingMs: number | null;
-  /** 생체인증을 시도한다. 성공하면 잠금을 풀고 true를 반환한다. */
-  authenticateWithBiometrics: () => Promise<boolean>;
+  /** 생체인증을 시도한다. 성공하면 잠금을 풀고 결과를 반환한다(OS 레벨 lockout 여부 포함). */
+  authenticateWithBiometrics: () => Promise<{
+    success: boolean;
+    isLockedOut: boolean;
+  }>;
   /** PIN으로 대체 인증을 시도한다. 시도 횟수 제한에 걸려 있으면 검증 자체를 하지 않는다. */
   authenticateWithPin: (pin: string) => Promise<boolean>;
 }
@@ -68,12 +71,12 @@ function useAppLock(): UseAppLockResult {
   }, []);
 
   const authenticateWithBiometrics = useCallback(async () => {
-    const success = await biometric.authenticate();
-    if (success) {
+    const result = await biometric.authenticate();
+    if (result.success) {
       setIsLocked(false);
       pinLock.reset();
     }
-    return success;
+    return result;
   }, [biometric, pinLock]);
 
   const authenticateWithPin = useCallback(
