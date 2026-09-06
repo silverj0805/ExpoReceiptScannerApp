@@ -7,6 +7,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   useAppLockStore.setState({
     isLockSetUp: false,
+    lockType: null,
     declinedAt: null,
     authenticated: false,
     backgroundStartedAt: null,
@@ -50,6 +51,49 @@ test('declineToday를 호출하면 현재 시각이 declinedAt에 기록된다',
   expect(declinedAt).not.toBeNull();
   expect(declinedAt as number).toBeGreaterThanOrEqual(before);
   expect(declinedAt as number).toBeLessThanOrEqual(after);
+});
+
+// lockType은 "생체/핀 중 어떤 방식으로 잠글지"를 나타내는 비민감 설정값이다 —
+// PIN 값 자체(민감값)와 달리 SecureStore로 뺄 이유가 없어 isLockSetUp과 같은
+// 이유로 AsyncStorage에 영속화된다. 초기값 null은 "아직 방식을 고르지 않음"을
+// 뜻하고, 실제 디폴트 결정(생체 지원 여부에 따라 bio/pin 중 뭘 고를지)은 이
+// 스토어가 아니라 그 값을 쓰는 설정 화면 쪽 책임이다.
+test('초기값은 lockType이 null이다(아직 방식을 고르지 않음)', () => {
+  expect(useAppLockStore.getState().lockType).toBeNull();
+});
+
+test('setLockType("bio")를 호출하면 값이 반영된다', () => {
+  useAppLockStore.getState().setLockType('bio');
+
+  expect(useAppLockStore.getState().lockType).toBe('bio');
+});
+
+test('setLockType("pin")를 호출하면 값이 반영된다', () => {
+  useAppLockStore.getState().setLockType('pin');
+
+  expect(useAppLockStore.getState().lockType).toBe('pin');
+});
+
+test('setLockType(null)을 호출하면 초기화된다', () => {
+  useAppLockStore.getState().setLockType('bio');
+
+  useAppLockStore.getState().setLockType(null);
+
+  expect(useAppLockStore.getState().lockType).toBeNull();
+});
+
+test('lockType은 AsyncStorage에 저장된다(비민감값이라 PIN과 달리 여기 둔다)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLockStore.getState().setLockType('pin');
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.lockType).toBe('pin');
 });
 
 test('상태가 바뀌면 실제로 AsyncStorage에 저장된다', async () => {

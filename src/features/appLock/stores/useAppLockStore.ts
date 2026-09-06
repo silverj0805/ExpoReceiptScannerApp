@@ -5,6 +5,16 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 interface UseAppLockState {
   /** 잠금 설정 여부(무잠금/잠금). 사용자가 설정 화면에서 켜고 끈다. */
   isLockSetUp: boolean;
+  /**
+   * 잠금 방식. 생체인증을 선택했더라도 PIN은 대체제로 항상 등록돼 있어야 하지만,
+   * 실제로 어느 쪽을 우선(기본) 인증 수단으로 쓸지는 이 값으로 결정한다. 값
+   * 자체는 민감하지 않아(PIN 번호 자체가 아니라 "방식" 선택일 뿐) isLockSetUp과
+   * 같이 AsyncStorage에 영속화된다 — PIN 값 자체는 별도로 만들 SecureStore 기반
+   * pinStorage.ts가 담당한다. null은 "아직 방식을 고르지 않음"을 뜻하고, 지원
+   * 여부에 따른 디폴트 결정(생체 지원 시 bio, 아니면 pin)은 이 스토어가 아니라
+   * 설정 화면 쪽 책임이다.
+   */
+  lockType: 'bio' | 'pin' | null;
   /** 홈 온보딩 모달을 마지막으로 거절한 시각(ms). 거절한 적 없으면 null. */
   declinedAt: number | null;
   /**
@@ -40,6 +50,7 @@ interface UseAppLockState {
    */
   frozenUntil: number | null;
   setLockSetUp: (enabled: boolean) => void;
+  setLockType: (lockType: 'bio' | 'pin' | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
   setBackgroundStartedAt: (backgroundStartedAt: number | null) => void;
   setSessionTimedOut: (sessionTimedOut: boolean) => void;
@@ -65,6 +76,7 @@ export const useAppLockStore = create<UseAppLockState>()(
   persist(
     set => ({
       isLockSetUp: false,
+      lockType: null,
       declinedAt: null,
       hasHydrated: false,
       authenticated: false,
@@ -72,6 +84,7 @@ export const useAppLockStore = create<UseAppLockState>()(
       sessionTimedOut: false,
       frozenUntil: null,
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
+      setLockType: lockType => set({ lockType }),
       setAuthenticated: authenticated => set({ authenticated }),
       setBackgroundStartedAt: backgroundStartedAt =>
         set({ backgroundStartedAt }),
@@ -88,6 +101,7 @@ export const useAppLockStore = create<UseAppLockState>()(
       // frozenUntil은 반대로 반드시 포함해야 한다(재시작으로 우회되면 안 되므로).
       partialize: state => ({
         isLockSetUp: state.isLockSetUp,
+        lockType: state.lockType,
         declinedAt: state.declinedAt,
         frozenUntil: state.frozenUntil,
       }),
