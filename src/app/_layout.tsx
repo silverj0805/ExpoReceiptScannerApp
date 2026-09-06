@@ -1,9 +1,11 @@
 import '@/global.css';
 
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLockGate from '@/features/appLock/AppLockGate';
@@ -48,26 +50,30 @@ function ScreenTracker() {
 
 export default function RootLayout() {
   return (
-    <KeyboardProvider>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <ErrorBoundary onError={handleError}>
-            <ScreenTracker />
-            <PrivacyScreenCover>
-              <AppLockGate>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="confirm" />
-                  <Stack.Screen name="receipts/[id]" />
-                  <Stack.Screen name="settings/index" />
-                  <Stack.Screen name="settings/license" />
-                  <Stack.Screen name="settings/webview" />
-                </Stack>
-              </AppLockGate>
-            </PrivacyScreenCover>
-          </ErrorBoundary>
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </KeyboardProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <ErrorBoundary onError={handleError}>
+              <ScreenTracker />
+              <PrivacyScreenCover>
+                <AppLockGate>
+                  <BottomSheetModalProvider>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="confirm" />
+                      <Stack.Screen name="receipts/[id]" />
+                      <Stack.Screen name="settings/index" />
+                      <Stack.Screen name="settings/license" />
+                      <Stack.Screen name="settings/webview" />
+                    </Stack>
+                  </BottomSheetModalProvider>
+                </AppLockGate>
+              </PrivacyScreenCover>
+            </ErrorBoundary>
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
