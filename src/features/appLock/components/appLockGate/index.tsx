@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import useSessionTimeout from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import AuthVerify from '../authVerify';
 
@@ -25,11 +26,18 @@ interface AppLockGateProps {
  * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
  * 실제로 잠금이 걸려 있어도 아직 초기값(무잠금)만 보이는 짧은 틈이 있다. 그 틈에
  * 메인 화면을 그려버리면 보안 잠금이 새는 것이므로, 값이 확정될 때까지 기다린다.
+ *
+ * `useSessionTimeout`(백그라운드 5분 이상 시 재인증 요구)도 여기서 딱 한 번만
+ * 마운트한다 — 이 훅이 부르는 곳마다 별도 상태 인스턴스가 생기면 안 되는데,
+ * 상태 자체를 useAppLockStore에 두고 이 훅은 그걸 갱신만 하므로 여러 곳에서
+ * 불러도 안전은 하지만, 굳이 여러 곳에서 리스너를 중복 등록할 이유가 없다.
  */
 function AppLockGate({ children }: AppLockGateProps) {
   const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
   const hasHydrated = useAppLockStore(state => state.hasHydrated);
   const authenticated = useAppLockStore(state => state.authenticated);
+
+  useSessionTimeout();
 
   // persist가 AsyncStorage에서 실제 잠금 설정 값을 아직 다 읽어오지 못한 상태다 —
   // 이 시점의 isLockSetUp은 하이드레이션 전 초기값(false)일 뿐 실제 값이 아니므로,

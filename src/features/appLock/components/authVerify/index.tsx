@@ -5,6 +5,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import Icon from '@/shared/components/Icon';
 
 import useBioAuth from '../../hooks/useBioAuth';
+import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 
 function mapErrorMessage(error: LocalAuthenticationError | undefined): string {
@@ -26,6 +27,8 @@ function mapErrorMessage(error: LocalAuthenticationError | undefined): string {
 function AuthVerify() {
   const { isReady, isSupported, isEnrolled, authenticate } = useBioAuth();
   const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
+  const sessionTimedOut = useAppLockStore(state => state.sessionTimedOut);
+  const setSessionTimedOut = useAppLockStore(state => state.setSessionTimedOut);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canUseBiometric = isSupported && isEnrolled;
@@ -35,6 +38,8 @@ function AuthVerify() {
     const result = await authenticate();
     if (result.success) {
       setAuthenticated(true);
+      // 세션 타임아웃으로 뜬 안내였다면, 다음번엔(콜드 스타트 등) 다시 안 뜨게 정리한다.
+      setSessionTimedOut(false);
     } else {
       setErrorMessage(mapErrorMessage(result.error));
     }
@@ -45,6 +50,7 @@ function AuthVerify() {
 
     if (!canUseBiometric) {
       setAuthenticated(true);
+      setSessionTimedOut(false);
       return;
     }
 
@@ -69,12 +75,18 @@ function AuthVerify() {
         <View className="h-28 w-28 items-center justify-center rounded-full border-[1.5px] border-primary/20 bg-primary/10">
           <Icon name="finger-print" size={52} colorClassName="accent-primary" />
         </View>
+
         <View className="items-center gap-2">
           <Text className="text-xl font-bold text-black">
-            생체인증으로 잠금 해제
+            {sessionTimedOut
+              ? `${Math.round(SESSION_TIMEOUT_MS / 60_000)}분 이상 자리를 비우셨네요`
+              : '생체인증으로 잠금 해제'}
           </Text>
+
           <Text className="text-center text-sm leading-relaxed text-gray">
-            모으곰이 내 지출 내역을{'\n'}안전하게 보호하고 있어요
+            {sessionTimedOut
+              ? '보안을 위해 다시 인증을 진행해주세요'
+              : '모으곰이 내 지출 내역을\n안전하게 보호하고 있어요'}
           </Text>
 
           {errorMessage && (

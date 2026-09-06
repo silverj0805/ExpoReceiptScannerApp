@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+import useSessionTimeout from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 
 import AppLockGate from './index';
@@ -18,12 +19,29 @@ jest.mock('../authVerify', () => {
   };
 });
 
+// useSessionTimeout 자체 동작(AppState 감지, 5분 경과 판단 등)은
+// useSessionTimeout.test.ts가 이미 다루므로, 여기서는 "게이트가 이 훅을
+// 호출하는지"만 확인한다.
+jest.mock('../../hooks/useSessionTimeout');
+const mockedUseSessionTimeout = useSessionTimeout as jest.Mock;
+
 beforeEach(() => {
+  jest.clearAllMocks();
   useAppLockStore.setState({
     isLockSetUp: false,
     hasHydrated: true,
     authenticated: false,
   });
+});
+
+test('마운트되면 useSessionTimeout을 호출한다', async () => {
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(mockedUseSessionTimeout).toHaveBeenCalled();
 });
 
 test('하이드레이션이 끝나기 전에는 아무것도 보여주지 않는다', async () => {

@@ -9,6 +9,8 @@ beforeEach(async () => {
     isLockSetUp: false,
     declinedAt: null,
     authenticated: false,
+    backgroundStartedAt: null,
+    sessionTimedOut: false,
   });
   // 이전 테스트에서 쓴 값이 남아있다가 나중에 비동기로 rehydrate되며 덮어쓰는 걸 방지 —
   // 스토리지를 비운 뒤 명시적으로 한 번 재수화시켜 매 테스트를 결정론적으로 시작한다.
@@ -105,4 +107,66 @@ test('authenticated는 AsyncStorage에 저장되지 않는다(세션 로컬)', a
   const [, savedRaw] =
     setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
   expect(JSON.parse(savedRaw).state.authenticated).toBeUndefined();
+});
+
+// backgroundStartedAt은 "이번 세션에서 언제 백그라운드로 나갔는지"를 나타내는
+// 세션 로컬 값이다 — 앱을 재시작하면(콜드 스타트) authenticated가 어차피 다시
+// false로 시작해서 이 값이 관여할 필요가 없어지므로, 절대 영속화되면 안 된다.
+test('초기값은 백그라운드로 나간 적 없는 상태다', () => {
+  expect(useAppLockStore.getState().backgroundStartedAt).toBeNull();
+});
+
+test('setBackgroundStartedAt(값)을 호출하면 반영된다', () => {
+  useAppLockStore.getState().setBackgroundStartedAt(12345);
+
+  expect(useAppLockStore.getState().backgroundStartedAt).toBe(12345);
+});
+
+test('setBackgroundStartedAt(null)을 호출하면 초기화된다', () => {
+  useAppLockStore.getState().setBackgroundStartedAt(12345);
+
+  useAppLockStore.getState().setBackgroundStartedAt(null);
+
+  expect(useAppLockStore.getState().backgroundStartedAt).toBeNull();
+});
+
+test('backgroundStartedAt은 AsyncStorage에 저장되지 않는다(세션 로컬)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLockStore.getState().setBackgroundStartedAt(Date.now());
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.backgroundStartedAt).toBeUndefined();
+});
+
+// sessionTimedOut은 "방금 세션 타임아웃 때문에 재인증이 필요해졌는지"를 나타낸다 —
+// AuthVerify가 이 값을 보고 "자리를 비우셨네요" 안내 문구를 보여줄지 정한다.
+// authenticated/backgroundStartedAt과 같은 이유로 세션 로컬이라 영속화되면 안 된다.
+test('초기값은 세션 타임아웃으로 재인증이 필요한 상태가 아니다', () => {
+  expect(useAppLockStore.getState().sessionTimedOut).toBe(false);
+});
+
+test('setSessionTimedOut(true)를 호출하면 값이 반영된다', () => {
+  useAppLockStore.getState().setSessionTimedOut(true);
+
+  expect(useAppLockStore.getState().sessionTimedOut).toBe(true);
+});
+
+test('sessionTimedOut은 AsyncStorage에 저장되지 않는다(세션 로컬)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLockStore.getState().setSessionTimedOut(true);
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.sessionTimedOut).toBeUndefined();
 });

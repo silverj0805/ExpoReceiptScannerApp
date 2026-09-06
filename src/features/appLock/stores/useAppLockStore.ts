@@ -20,8 +20,23 @@ interface UseAppLockState {
    * AppLockGate가 이 값을 구독해서, false일 때만 잠금 화면을 그린다.
    */
   authenticated: boolean;
+  /**
+   * 이번 세션에서 마지막으로 백그라운드로 전환된 시각(ms). 포그라운드면 null.
+   * authenticated와 같은 이유로 절대 영속화되지 않는다 — 앱을 재시작하면
+   * authenticated가 어차피 다시 false로 시작해서 이 값이 관여할 필요가 없다.
+   */
+  backgroundStartedAt: number | null;
+  /**
+   * 방금 세션 타임아웃 때문에 재인증이 필요해졌는지. AuthVerify가 이 값을 보고
+   * "자리를 비우셨네요" 안내 문구를 보여줄지 정한다 — 앱을 막 켰을 때(콜드 스타트)의
+   * 평범한 잠금과 구분하기 위함. authenticated/backgroundStartedAt과 같은 이유로
+   * 세션 로컬이라 영속화되지 않는다.
+   */
+  sessionTimedOut: boolean;
   setLockSetUp: (enabled: boolean) => void;
   setAuthenticated: (authenticated: boolean) => void;
+  setBackgroundStartedAt: (backgroundStartedAt: number | null) => void;
+  setSessionTimedOut: (sessionTimedOut: boolean) => void;
   declineToday: () => void;
 }
 
@@ -35,8 +50,13 @@ export const useAppLockStore = create<UseAppLockState>()(
       declinedAt: null,
       hasHydrated: false,
       authenticated: false,
+      backgroundStartedAt: null,
+      sessionTimedOut: false,
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
       setAuthenticated: authenticated => set({ authenticated }),
+      setBackgroundStartedAt: backgroundStartedAt =>
+        set({ backgroundStartedAt }),
+      setSessionTimedOut: sessionTimedOut => set({ sessionTimedOut }),
       declineToday: () => set({ declinedAt: Date.now() }),
     }),
     {
