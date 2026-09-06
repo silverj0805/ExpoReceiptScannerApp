@@ -59,7 +59,18 @@ function usePinLock(): UsePinLockResult {
       setPinFailCount(count => {
         const nextCount = count + 1;
         if (nextCount >= MAX_PIN_ATTEMPTS) {
-          setPinLockedUntil(Date.now() + PIN_LOCKOUT_MS);
+          const lockStartedAt = Date.now();
+          setPinLockedUntil(lockStartedAt + PIN_LOCKOUT_MS);
+          // `now`는 마운트 시점에 한 번 찍고 주기 갱신 effect가 1초 뒤에야 처음 돈다 —
+          // 그대로 두면 방금 막 잠긴 순간의 pinLockoutRemainingMs가 PIN_LOCKOUT_MS보다
+          // "마운트~잠금 사이에 지난 시간"만큼 더 크게 보인다(실기기 재현으로 확인:
+          // 5분이어야 할 카운트다운이 5분 30초로 표시됨). 잠금을 거는 바로 그 시각으로
+          // 동기화해서 카운트다운이 정확히 5분부터 시작하게 한다.
+          setNow(lockStartedAt);
+          // 잠기는 순간 남은 시도 횟수를 5회로 리셋한다(사용자 요구사항) — 부수 효과로
+          // 카운트다운이 자연 만료된 뒤에도 "남은 시도 횟수 0회"로 잘못 보이던 문제도
+          // 같이 없어진다(usePinLock.test.ts 참고).
+          return 0;
         }
         return nextCount;
       });

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+
+import Icon from '@/shared/components/Icon';
 
 import PinDots from '../shared/components/PinDots';
 import PinKeypad from '../shared/components/PinKeypad';
@@ -19,6 +21,13 @@ interface PinVerifyFormProps {
    */
   onSubmitPin: (pin: string) => Promise<boolean>;
   onSuccess: () => void;
+  /**
+   * 생체인증으로 전환하는 콜백. 기기가 생체인증을 지원+등록+활성화한 상태에서만
+   * 상위(LockScreen)가 넘겨준다 — 없으면(=생체인증을 아예 못 쓰는 상황) 전환 UI 자체를 숨긴다.
+   * 잠기지 않았을 때 "Face ID로 전환" 링크로만 노출된다 — 시도 횟수 제한(PinLockedOut)에
+   * 걸린 동안엔 생체인증으로 우회할 수 없다(목업엔 있었지만 정책상 뺀 버튼, 사용자 확인).
+   */
+  onSwitchToBiometric?: () => void;
 }
 
 /** ms를 "mm:ss" 형식으로 표시한다. */
@@ -36,9 +45,23 @@ function PinVerifyForm({
   pinLockoutRemainingMs,
   onSubmitPin,
   onSuccess,
+  onSwitchToBiometric,
 }: PinVerifyFormProps) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [wasPinLockedOut, setWasPinLockedOut] = useState(isPinLockedOut);
+
+  // 잠기는 순간(isPinLockedOut이 false→true로 바뀌는 순간) 마지막 실패가 남긴
+  // "PIN이 틀렸어요" 에러를 지운다 — 카운트다운과 옛날 에러 문구가 동시에 보이면 안 되고,
+  // 잠긴 동안·잠금이 풀린 뒤에도 재시도 안내만 보여야 한다(실기기 재현으로 확인 — 사용자
+  // 요구사항). useEffect에서 setState를 직접 부르면 react-hooks/set-state-in-effect에
+  // 걸리고(이번엔 LockScreen 때와 달리 실제로 effect 본문에서 동기적으로 부르는 진짜
+  // 케이스라 disable로 넘길 이유가 없음), React 공식 문서가 권장하는 "prop 변화에 맞춰
+  // 렌더 중 상태 조정하기" 패턴을 그대로 쓴다.
+  if (isPinLockedOut !== wasPinLockedOut) {
+    setWasPinLockedOut(isPinLockedOut);
+    if (isPinLockedOut) setError(null);
+  }
 
   const handlePressDigit = async (digit: string) => {
     if (pin.length >= PIN_LENGTH) return;
@@ -62,6 +85,46 @@ function PinVerifyForm({
     setError(null);
   };
 
+  const keypad = (
+    <PinKeypad
+      onPressDigit={handlePressDigit}
+      onPressDelete={handlePressDelete}
+      disabled={isPinLockedOut}
+    />
+  );
+
+  // 시도 횟수 제한에 걸리면 onSwitchToBiometric 유무와 무관하게 항상 이 잠금 안내 화면
+  // (목업 PinLockedOut.dc.html과 매칭 — 아이콘 + 제목 + 설명 + 큰 카운트다운)으로 완전히
+  // 바꿔서 보여준다. 목업엔 "Face ID로 잠금 해제" 버튼이 있었지만 정책상 뺐다(사용자 확인
+  // — PIN이 잠긴 동안엔 생체인증으로 우회할 수 없다).
+  if (isPinLockedOut) {
+    return (
+      <View className="items-center gap-6 px-6 py-4">
+        <View className="h-20 w-20 items-center justify-center rounded-full border-[1.5px] border-[rgba(179,38,30,0.2)] bg-[rgba(179,38,30,0.08)]">
+          <Icon name="lock-closed" size={36} color="#B3261E" />
+        </View>
+        <View className="items-center gap-2">
+          <Text className="text-xl font-bold text-black">PIN이 잠겼어요</Text>
+          <Text className="text-center text-sm leading-relaxed text-gray">
+            너무 많이 틀렸어요{'\n'}아래 시간이 지나면 다시 시도할 수 있어요
+          </Text>
+        </View>
+
+        {pinLockoutRemainingMs != null && (
+          <Text className="text-[40px] font-bold tracking-[1px] text-black">
+            {formatCountdown(pinLockoutRemainingMs)}
+          </Text>
+        )}
+
+        <Text className="text-xs text-gray" testID="pin-lockout-message">
+          시간 후에 다시 시도해주세요
+        </Text>
+
+        {keypad}
+      </View>
+    );
+  }
+
   return (
     <View className="items-center gap-6 px-6 py-4">
       <View className="items-center gap-2">
@@ -73,15 +136,9 @@ function PinVerifyForm({
 
       <PinDots length={pin.length} />
 
-      {isPinLockedOut && pinLockoutRemainingMs != null ? (
-        <Text className="text-4xl font-bold text-black">
-          {formatCountdown(pinLockoutRemainingMs)}
-        </Text>
-      ) : (
-        <Text className="text-xs text-gray">
-          남은 시도 횟수 {remainingPinAttempts}회
-        </Text>
-      )}
+      <Text className="text-xs text-gray">
+        남은 시도 횟수 {remainingPinAttempts}회
+      </Text>
 
       {error && (
         <Text className="text-xs text-[#B3261E]" testID="pin-error">
@@ -89,11 +146,18 @@ function PinVerifyForm({
         </Text>
       )}
 
-      <PinKeypad
-        onPressDigit={handlePressDigit}
-        onPressDelete={handlePressDelete}
-        disabled={isPinLockedOut}
-      />
+      {keypad}
+
+      {onSwitchToBiometric && (
+        <TouchableOpacity
+          testID="switch-to-biometric"
+          onPress={onSwitchToBiometric}
+        >
+          <Text className="text-sm font-medium text-primary underline">
+            Face ID로 전환
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
