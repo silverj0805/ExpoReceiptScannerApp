@@ -33,12 +33,30 @@ interface UseAppLockState {
    * 세션 로컬이라 영속화되지 않는다.
    */
   sessionTimedOut: boolean;
+  /**
+   * 인증을 너무 많이 틀려서(OS가 lockout으로 판단) 언제까지 얼어붙어 있는지 나타내는
+   * 절대 시각(ms). 얼어붙어 있지 않으면 null. authenticated와 반대로 반드시
+   * 영속화돼야 한다 — 앱을 껐다 켜서 그 틈을 타 우회하면 안 되기 때문이다.
+   */
+  frozenUntil: number | null;
   setLockSetUp: (enabled: boolean) => void;
   setAuthenticated: (authenticated: boolean) => void;
   setBackgroundStartedAt: (backgroundStartedAt: number | null) => void;
   setSessionTimedOut: (sessionTimedOut: boolean) => void;
   declineToday: () => void;
+  /** 지금부터 FREEZE_DURATION_MS 동안 얼어붙는다. */
+  freeze: () => void;
+  /** 얼어붙은 상태를 해제한다. */
+  unfreeze: () => void;
 }
+
+/**
+ * 얼어붙는 지속 시간. 생체인증은 PIN과 달리 우리가 직접 실패 횟수를 세지 않고
+ * OS가 자체적으로 lockout 여부를 판단해서 알려주므로(expo-local-authentication의
+ * 'lockout' 에러), 그 신호를 받았을 때 우리 쪽에서 독자적으로 거는 쿨다운 시간이다.
+ * 테스트 중엔 매번 몇 분씩 기다릴 수 없어 개발 빌드에서만 짧게 잡는다.
+ */
+export const FREEZE_DURATION_MS = __DEV__ ? 10_000 : 3 * 60_000;
 
 /**
  * 앱 전체 잠금 오케스트레이션 훅
@@ -52,20 +70,26 @@ export const useAppLockStore = create<UseAppLockState>()(
       authenticated: false,
       backgroundStartedAt: null,
       sessionTimedOut: false,
+      frozenUntil: null,
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
       setAuthenticated: authenticated => set({ authenticated }),
       setBackgroundStartedAt: backgroundStartedAt =>
         set({ backgroundStartedAt }),
       setSessionTimedOut: sessionTimedOut => set({ sessionTimedOut }),
       declineToday: () => set({ declinedAt: Date.now() }),
+      freeze: () => set({ frozenUntil: Date.now() + FREEZE_DURATION_MS }),
+      unfreeze: () => set({ frozenUntil: null }),
     }),
     {
       name: 'appLock.useAppLockStore',
       storage: createJSONStorage(() => AsyncStorage),
-      // hasHydrated/authenticated는 둘 다 "이번 실행/세션에서만 유효한" 프로세스 로컬 값이라 저장 대상에서 뺀다
+      // hasHydrated/authenticated/backgroundStartedAt/sessionTimedOut은 전부
+      // "이번 실행/세션에서만 유효한" 프로세스 로컬 값이라 저장 대상에서 뺀다.
+      // frozenUntil은 반대로 반드시 포함해야 한다(재시작으로 우회되면 안 되므로).
       partialize: state => ({
         isLockSetUp: state.isLockSetUp,
         declinedAt: state.declinedAt,
+        frozenUntil: state.frozenUntil,
       }),
       // 하이드레이션이 끝난(또는 실패한) 시점에 hasHydrated를 true로 뒤집는다.
       // 이 콜백은 항상 create() 호출이 끝난 뒤 비동기로 실행되므로, 여기서 참조하는

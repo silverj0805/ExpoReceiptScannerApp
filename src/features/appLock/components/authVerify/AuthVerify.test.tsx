@@ -28,7 +28,11 @@ const mockUseBioAuth = (overrides: Partial<ReturnType<typeof useBioAuth>>) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useAppLockStore.setState({ authenticated: false, sessionTimedOut: false });
+  useAppLockStore.setState({
+    authenticated: false,
+    sessionTimedOut: false,
+    frozenUntil: null,
+  });
 });
 
 test('하드웨어 확인이 끝나기 전에는 아무것도 보여주지 않는다', async () => {
@@ -88,7 +92,14 @@ test('인증에 실패하면(일반) 에러 메시지를 보여준다', async ()
   ).toBeTruthy();
 });
 
-test('OS가 잠근 상태(lockout)면 그에 맞는 안내를 보여준다', async () => {
+// disableDeviceFallback을 안 켜기로 한 결정(사용자 확인) 때문에, authenticateAsync가
+// 우리 쪽에 'lockout'을 던져주는 경우 자체가 실질적으로 도달 불가능하다 — 기본값
+// (false)에서는 생체인증을 여러 번 틀리면 OS가 'lockout'을 주기 전에 자기 자신의
+// 기기 패스코드 화면을 먼저 띄워서 가로챈다(실제로 expo-local-authentication의
+// disableDeviceFallback 옵션 문서에 명시돼 있고, 실기기로도 확인함). 그래서 이제
+// 'lockout'도 다른 에러들과 마찬가지로 그냥 일반 에러 메시지만 보여준다 — freeze()는
+// PIN 쪽에서 우리가 직접 5회 실패를 셀 때만 쓴다.
+test('OS가 잠근 상태(lockout)여도 얼리지 않고 일반 에러 메시지만 보여준다', async () => {
   mockUseBioAuth({
     authenticate: jest
       .fn()
@@ -98,8 +109,9 @@ test('OS가 잠근 상태(lockout)면 그에 맞는 안내를 보여준다', asy
   await render(<AuthVerify />);
 
   expect(
-    await screen.findByText('너무 자주 실패해서 잠시 후 다시 시도해주세요'),
+    await screen.findByText('인증에 실패했어요. 다시 시도해주세요'),
   ).toBeTruthy();
+  expect(useAppLockStore.getState().frozenUntil).toBeNull();
 });
 
 test('기기에서 생체인증을 쓸 수 없다는 에러가 오면 그에 맞는 안내를 보여준다', async () => {

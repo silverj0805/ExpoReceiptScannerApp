@@ -25,12 +25,23 @@ jest.mock('../authVerify', () => {
 jest.mock('../../hooks/useSessionTimeout');
 const mockedUseSessionTimeout = useSessionTimeout as jest.Mock;
 
+// FrozenScreen 자체 동작(카운트다운, 버튼 활성화 등)은 FrozenScreen.test.tsx가
+// 이미 다루므로, 여기서도 같은 이유로 스텁으로 대체한다.
+jest.mock('../frozenScreen', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Text: MockText } = require('react-native');
+  return function MockFrozenScreen() {
+    return <MockText>mock frozen screen</MockText>;
+  };
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   useAppLockStore.setState({
     isLockSetUp: false,
     hasHydrated: true,
     authenticated: false,
+    frozenUntil: null,
   });
 });
 
@@ -77,6 +88,23 @@ test('잠금 상태면 자식 대신 AuthVerify를 보여준다', async () => {
 
   expect(screen.queryByText('메인 화면')).toBeNull();
   expect(screen.getByText('mock auth verify')).toBeTruthy();
+});
+
+test('얼어붙은 상태면 AuthVerify 대신 FrozenScreen을 보여준다', async () => {
+  useAppLockStore.setState({
+    isLockSetUp: true,
+    frozenUntil: Date.now() + 10_000,
+  });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(screen.queryByText('메인 화면')).toBeNull();
+  expect(screen.queryByText('mock auth verify')).toBeNull();
+  expect(screen.getByText('mock frozen screen')).toBeTruthy();
 });
 
 // 실측으로 확인한 버그 재현: SecuritySection에서 잠금 토글을 켜면 isLockSetUp이

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { waitFor } from '@testing-library/react-native';
 
-import { useAppLockStore } from './useAppLockStore';
+import { FREEZE_DURATION_MS, useAppLockStore } from './useAppLockStore';
 
 beforeEach(async () => {
   await AsyncStorage.clear();
@@ -11,6 +11,7 @@ beforeEach(async () => {
     authenticated: false,
     backgroundStartedAt: null,
     sessionTimedOut: false,
+    frozenUntil: null,
   });
   // 이전 테스트에서 쓴 값이 남아있다가 나중에 비동기로 rehydrate되며 덮어쓰는 걸 방지 —
   // 스토리지를 비운 뒤 명시적으로 한 번 재수화시켜 매 테스트를 결정론적으로 시작한다.
@@ -169,4 +170,49 @@ test('sessionTimedOut은 AsyncStorage에 저장되지 않는다(세션 로컬)',
   const [, savedRaw] =
     setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
   expect(JSON.parse(savedRaw).state.sessionTimedOut).toBeUndefined();
+});
+
+// frozenUntil은 "인증을 너무 많이 틀려서 언제까지 얼어붙어 있는지"를 나타내는 절대
+// 시각(ms)이다. 앱을 껐다 켜도 얼어붙은 상태가 풀리면 안 되므로(그 틈을 타 우회 못
+// 하게) authenticated와 반대로 반드시 영속화돼야 한다.
+test('초기값은 얼어붙어 있지 않은 상태다', () => {
+  expect(useAppLockStore.getState().frozenUntil).toBeNull();
+});
+
+test('freeze()를 호출하면 지금부터 FREEZE_DURATION_MS 뒤로 frozenUntil이 설정된다', () => {
+  const before = Date.now();
+
+  useAppLockStore.getState().freeze();
+
+  const after = Date.now();
+  const frozenUntil = useAppLockStore.getState().frozenUntil;
+
+  expect(frozenUntil).not.toBeNull();
+  expect(frozenUntil as number).toBeGreaterThanOrEqual(
+    before + FREEZE_DURATION_MS,
+  );
+  expect(frozenUntil as number).toBeLessThanOrEqual(after + FREEZE_DURATION_MS);
+});
+
+test('unfreeze()를 호출하면 frozenUntil이 null이 된다', () => {
+  useAppLockStore.getState().freeze();
+
+  useAppLockStore.getState().unfreeze();
+
+  expect(useAppLockStore.getState().frozenUntil).toBeNull();
+});
+
+test('frozenUntil은 AsyncStorage에 저장된다(재시작해도 유지돼야 함)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLockStore.getState().freeze();
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.frozenUntil).not.toBeUndefined();
+  expect(JSON.parse(savedRaw).state.frozenUntil).not.toBeNull();
 });

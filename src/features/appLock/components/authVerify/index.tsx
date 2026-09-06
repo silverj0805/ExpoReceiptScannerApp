@@ -8,12 +8,13 @@ import useBioAuth from '../../hooks/useBioAuth';
 import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 
+// disableDeviceFallback을 안 켜기로 해서(기본값 false), 생체인증을 여러 번 틀려도
+// OS가 'lockout'을 우리에게 주기 전에 자기 자신의 기기 패스코드 화면을 먼저 띄워서
+// 가로챈다(expo-local-authentication의 disableDeviceFallback 옵션 문서에 명시,
+// 실기기로도 확인) — 그래서 'lockout'도 여기서 그냥 일반 에러로 취급한다.
 function mapErrorMessage(error: LocalAuthenticationError | undefined): string {
   if (error === 'not_enrolled' || error === 'not_available') {
     return '이 기기에서는 생체인증을 쓸 수 없어요';
-  }
-  if (error === 'lockout') {
-    return '너무 자주 실패해서 잠시 후 다시 시도해주세요';
   }
   return '인증에 실패했어요. 다시 시도해주세요';
 }

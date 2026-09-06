@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import useSessionTimeout from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import AuthVerify from '../authVerify';
+import FrozenScreen from '../frozenScreen';
 
 interface AppLockGateProps {
   children: ReactNode;
@@ -22,6 +23,10 @@ interface AppLockGateProps {
  * 시도·에러 메시지 처리를 전부 그쪽 책임으로 두고, 이 게이트는 어떤 화면을 보여줄지
  * 결정하는 조건부 스왑 셸 역할만 한다.
  *
+ * 인증을 너무 많이 틀려 OS가 lockout으로 판단하면(AuthVerify가 감지해서
+ * useAppLockStore.freeze()를 부름) frozenUntil이 설정되고, 그동안은 AuthVerify
+ * 대신 `FrozenScreen`을 보여준다 — 얼어붙은 동안은 재시도 자체를 막는다.
+ *
  * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLockStore`는
  * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
  * 실제로 잠금이 걸려 있어도 아직 초기값(무잠금)만 보이는 짧은 틈이 있다. 그 틈에
@@ -36,6 +41,7 @@ function AppLockGate({ children }: AppLockGateProps) {
   const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
   const hasHydrated = useAppLockStore(state => state.hasHydrated);
   const authenticated = useAppLockStore(state => state.authenticated);
+  const frozenUntil = useAppLockStore(state => state.frozenUntil);
 
   useSessionTimeout();
 
@@ -45,6 +51,10 @@ function AppLockGate({ children }: AppLockGateProps) {
   // 있다. 값이 무엇인지 확정되기 전까진 아무것도 그리지 않는다.
   if (!hasHydrated) {
     return null;
+  }
+
+  if (isLockSetUp && frozenUntil != null) {
+    return <FrozenScreen />;
   }
 
   if (isLockSetUp && !authenticated) {
