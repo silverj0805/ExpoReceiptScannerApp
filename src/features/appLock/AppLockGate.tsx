@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import BioAuthVerify from './bio/components/BioAuthVerify';
 import FrozenScreen from './components/frozenScreen';
 import useSessionTimeout from './hooks/useSessionTimeout';
+import PinVerify from './pin/components/pinVerify';
 import { useAppLockStore } from './stores/useAppLockStore';
 
 interface AppLockGateProps {
@@ -42,6 +43,7 @@ function AppLockGate({ children }: AppLockGateProps) {
   const hasHydrated = useAppLockStore(state => state.hasHydrated);
   const authenticated = useAppLockStore(state => state.authenticated);
   const frozenUntil = useAppLockStore(state => state.frozenUntil);
+  const lockType = useAppLockStore(state => state.lockType);
 
   useSessionTimeout();
 
@@ -53,12 +55,18 @@ function AppLockGate({ children }: AppLockGateProps) {
     return null;
   }
 
+  // frozenUntil을 lockType보다 먼저 확인한다 — PIN을 5번 틀려 얼어붙은 상태에서도
+  // (lockType: 'pin') PinVerify가 재시도를 계속 받아주면 안 되고, 어떤 방식으로
+  // 잠겨 있든 얼어붙은 동안은 FrozenScreen이 완전히 가려야 한다.
   if (isLockSetUp && frozenUntil != null) {
     return <FrozenScreen />;
   }
 
+  // lockType이 null인 건 이 기능이 생기기 전부터 생체인증으로 잠금을 설정해둔
+  // 사용자거나 아직 방법을 명시적으로 고르지 않은 상태라, 기존 동작(생체인증)을
+  // 그대로 유지하기 위해 기본값으로 BioAuthVerify로 분기한다.
   if (isLockSetUp && !authenticated) {
-    return <BioAuthVerify />;
+    return lockType === 'pin' ? <PinVerify /> : <BioAuthVerify />;
   }
 
   return <>{children}</>;

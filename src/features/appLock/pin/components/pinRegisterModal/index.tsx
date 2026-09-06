@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Modal, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Icon from '@/shared/components/Icon';
 
+import { PIN_LENGTH, savePin } from '../../utils';
 import PinDots from '../PinDots';
 import PinKeypad from '../PinKeypad';
-import { PIN_LENGTH, savePin } from '../../utils';
 
 interface PinRegisterModalProps {
   visible: boolean;
@@ -35,14 +36,14 @@ function PinRegisterModal({
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [wasVisible, setWasVisible] = useState(visible);
+  const insets = useSafeAreaInsets();
 
   // 한 번 등록을 마치고 나중에 다시 이 모달이 열리는 경우(예: "인증 초기화" 이후
   // 재등록) 이전 시도의 stage/입력값이 남아있으면 안 되므로, 다시 열릴 때마다
   // 처음 단계로 되돌린다. useEffect에서 setState를 직접 부르면
   // react-hooks/set-state-in-effect에 걸리고 불필요한 리렌더가 한 번 더
   // 생기므로, React 공식 문서가 권장하는 "prop 변화에 맞춰 렌더 중 상태
-  // 조정하기" 패턴(구 feat/appLock 브랜치의 PinVerifyForm이 쓰던 것과 동일)을
-  // 그대로 쓴다.
+  // 조정하기" 패턴을 그대로 쓴다.
   if (visible !== wasVisible) {
     setWasVisible(visible);
     if (visible) {
@@ -99,7 +100,13 @@ function PinRegisterModal({
       // 빠져나갈 수 없게 막는다(취소 동선을 의도적으로 두지 않음).
       onRequestClose={() => {}}
     >
-      <View className="flex-1 items-center gap-6 bg-white px-6 py-4">
+      <View
+        className="flex-1 items-center justify-center gap-6 bg-white px-6"
+        style={{
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 16,
+        }}
+      >
         <View className="flex-row items-center gap-1.5">
           <View className="h-5.5 w-5.5 items-center justify-center rounded-full bg-primary">
             {stage === 'confirm' && (

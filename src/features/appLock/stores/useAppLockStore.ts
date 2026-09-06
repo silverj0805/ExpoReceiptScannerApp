@@ -67,7 +67,7 @@ interface UseAppLockState {
  * 'lockout' 에러), 그 신호를 받았을 때 우리 쪽에서 독자적으로 거는 쿨다운 시간이다.
  * 테스트 중엔 매번 몇 분씩 기다릴 수 없어 개발 빌드에서만 짧게 잡는다.
  */
-export const FREEZE_DURATION_MS = __DEV__ ? 10_000 : 3 * 60_000;
+export const FREEZE_DURATION_MS = __DEV__ ? 30_000 : 3 * 60_000;
 
 /**
  * 앱 전체 잠금 오케스트레이션 훅

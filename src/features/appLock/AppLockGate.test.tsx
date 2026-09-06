@@ -20,6 +20,16 @@ jest.mock('./bio/components/BioAuthVerify', () => {
   };
 });
 
+// PinVerify 자체 동작(PIN 검증, 시도 횟수 등)은 PinVerify.test.tsx가 이미 다루므로,
+// 여기서도 같은 이유로 스텁으로 대체한다.
+jest.mock('./pin/components/pinVerify', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Text: MockText } = require('react-native');
+  return function MockPinVerify() {
+    return <MockText>mock pin verify</MockText>;
+  };
+});
+
 // useSessionTimeout 자체 동작(AppState 감지, 5분 경과 판단 등)은
 // useSessionTimeout.test.ts가 이미 다루므로, 여기서는 "게이트가 이 훅을
 // 호출하는지"만 확인한다.
@@ -40,6 +50,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   useAppLockStore.setState({
     isLockSetUp: false,
+    lockType: null,
     hasHydrated: true,
     authenticated: false,
     frozenUntil: null,
@@ -78,8 +89,8 @@ test('무잠금 상태면 자식을 그대로 보여준다', async () => {
   expect(screen.getByText('메인 화면')).toBeTruthy();
 });
 
-test('잠금 상태면 자식 대신 BioAuthVerify를 보여준다', async () => {
-  useAppLockStore.setState({ isLockSetUp: true });
+test('잠금 상태 + lockType이 bio면 BioAuthVerify를 보여준다', async () => {
+  useAppLockStore.setState({ isLockSetUp: true, lockType: 'bio' });
 
   await render(
     <AppLockGate>
@@ -91,9 +102,39 @@ test('잠금 상태면 자식 대신 BioAuthVerify를 보여준다', async () =>
   expect(screen.getByText('mock bio auth verify')).toBeTruthy();
 });
 
+// lockType이 null인 건 이 기능이 생기기 전부터 생체인증으로 잠금을 설정해둔
+// 사용자거나, 아직 방법을 명시적으로 고르지 않은 상태다 — 이 경우 기존 동작
+// (생체인증)을 그대로 유지해야 하므로 BioAuthVerify로 기본 분기한다.
+test('잠금 상태 + lockType이 null이면(기존 사용자) 기본값으로 BioAuthVerify를 보여준다', async () => {
+  useAppLockStore.setState({ isLockSetUp: true, lockType: null });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(screen.getByText('mock bio auth verify')).toBeTruthy();
+});
+
+test('잠금 상태 + lockType이 pin이면 PinVerify를 보여준다', async () => {
+  useAppLockStore.setState({ isLockSetUp: true, lockType: 'pin' });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(screen.queryByText('메인 화면')).toBeNull();
+  expect(screen.queryByText('mock bio auth verify')).toBeNull();
+  expect(screen.getByText('mock pin verify')).toBeTruthy();
+});
+
 test('얼어붙은 상태면 BioAuthVerify 대신 FrozenScreen을 보여준다', async () => {
   useAppLockStore.setState({
     isLockSetUp: true,
+    lockType: 'bio',
     frozenUntil: Date.now() + 10_000,
   });
 
@@ -105,6 +146,26 @@ test('얼어붙은 상태면 BioAuthVerify 대신 FrozenScreen을 보여준다',
 
   expect(screen.queryByText('메인 화면')).toBeNull();
   expect(screen.queryByText('mock bio auth verify')).toBeNull();
+  expect(screen.getByText('mock frozen screen')).toBeTruthy();
+});
+
+// frozenUntil이 lockType보다 먼저 확인돼야 한다 — PIN을 5번 틀려 얼어붙은
+// 상태에서도(lockType: 'pin') PinVerify로 재시도를 계속 받아주면 안 되고
+// FrozenScreen이 완전히 가려야 한다.
+test('얼어붙은 상태면 lockType이 pin이어도 PinVerify 대신 FrozenScreen을 보여준다', async () => {
+  useAppLockStore.setState({
+    isLockSetUp: true,
+    lockType: 'pin',
+    frozenUntil: Date.now() + 10_000,
+  });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(screen.queryByText('mock pin verify')).toBeNull();
   expect(screen.getByText('mock frozen screen')).toBeTruthy();
 });
 
