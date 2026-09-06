@@ -46,6 +46,13 @@ const SettingSecuritySection = () => {
 
   const openSecuritySheet = () => setSecuritySheetVisible(true);
   const closeSecuritySheet = () => setSecuritySheetVisible(false);
+  // onClose와 달리 onComplete는 실제로 설정이 바뀐 뒤에 불린다 — refetch()를 같이 안 부르면
+  // 이 컴포넌트의 isSecuritySetUp이 stale하게 남아서, "설정하기"로 PIN 등록을 막 끝내도
+  // 화면을 벗어났다 재진입해야만 "변경하기"/"인증 초기화" 행으로 바뀐다(실기기 재현 확인).
+  const handleSecuritySheetComplete = () => {
+    setSecuritySheetVisible(false);
+    refetch();
+  };
 
   // PIN/생체인증을 모두 지우기만 한다 — 초기화 직후 설정 Sheet를 자동으로 다시 열지 않는다
   // (사용자가 "설정하기"를 눌러 직접 다시 시작하게 둔다).
@@ -138,7 +145,13 @@ const SettingSecuritySection = () => {
       <SecuritySetupSheet
         visible={securitySheetVisible}
         onClose={closeSecuritySheet}
-        onComplete={closeSecuritySheet}
+        onComplete={handleSecuritySheetComplete}
+        // "변경하기"는 이미 보안이 설정된 상태에서만 뜨므로 현재 방법을 넘겨서, 이미
+        // 선택된 방법을 다시 눌러도 아무 반응 없게 한다(isSecuritySetUp이 false인
+        // 최초 설정 경로에선 아직 선택된 방법이 없으므로 null).
+        currentMethod={
+          isSecuritySetUp ? (biometricEnabled ? 'biometric' : 'pin') : null
+        }
       />
     </>
   );

@@ -25,10 +25,27 @@ jest.mock('./SecuritySetupSheet', () => {
   // jest.mock 팩토리는 호이스팅돼서 바깥(모듈 최상단) import를 참조할 수 없어 인라인
   // require가 불가피함(SettingsScreen.test.tsx와 같은 패턴).
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Text } = require('react-native');
-  return function MockSecuritySetupSheet({ visible }: { visible: boolean }) {
+  const { Text, TouchableOpacity } = require('react-native');
+  return function MockSecuritySetupSheet({
+    visible,
+    currentMethod,
+    onComplete,
+  }: {
+    visible: boolean;
+    currentMethod?: 'biometric' | 'pin' | null;
+    onComplete: () => void;
+  }) {
     if (!visible) return null;
-    return <Text>mock security sheet</Text>;
+    return (
+      <>
+        {/* currentMethod를 텍스트로 노출해서, "변경하기"/"설정하기"가 어떤 값을 넘기는지
+            테스트에서 확인할 수 있게 한다. */}
+        <Text>mock security sheet: currentMethod={String(currentMethod)}</Text>
+        <TouchableOpacity testID="mock-sheet-complete" onPress={onComplete}>
+          <Text>complete</Text>
+        </TouchableOpacity>
+      </>
+    );
   };
 });
 
@@ -81,7 +98,31 @@ test('"보안 잠금 설정하기"를 누르면 인증 설정 Sheet가 열린다
 
   await fireEvent.press(screen.getByTestId('settings-security-setup-button'));
 
-  expect(screen.getByText('mock security sheet')).toBeTruthy();
+  expect(screen.getByText(/mock security sheet/)).toBeTruthy();
+});
+
+// 최초 설정(아직 아무 방법도 없음)이라 "이미 선택된 방법"이라는 개념 자체가 없다 —
+// currentMethod를 null로 넘겨서 Sheet 쪽 "이미 선택된 방법 무반응" 로직이 걸리지 않게 한다.
+test('"보안 잠금 설정하기"를 누르면 currentMethod를 null로 넘긴다(최초 설정엔 현재 방법이 없음)', async () => {
+  await render(<SettingSecuritySection />);
+
+  await fireEvent.press(screen.getByTestId('settings-security-setup-button'));
+
+  expect(
+    screen.getByText('mock security sheet: currentMethod=null'),
+  ).toBeTruthy();
+});
+
+// 실기기 재현으로 확인한 버그: onComplete가 onClose와 똑같이 시트만 닫고 refetch()를
+// 안 불러서, "설정하기"로 PIN 등록을 막 끝내도 이 섹션은 화면을 벗어났다 재진입해야만
+// (컴포넌트가 다시 마운트돼야만) "변경하기"/"인증 초기화" 행으로 바뀌었다.
+test('설정을 완료하면(onComplete) isSecuritySetUp을 다시 조회한다(재진입 없이 바로 반영돼야 함)', async () => {
+  await render(<SettingSecuritySection />);
+
+  await fireEvent.press(screen.getByTestId('settings-security-setup-button'));
+  await fireEvent.press(screen.getByTestId('mock-sheet-complete'));
+
+  expect(mockedRefetch).toHaveBeenCalled();
 });
 
 test('보안이 설정된 상태면 현재 방법과 "인증 초기화" 행을 보여준다', async () => {
@@ -143,7 +184,41 @@ test('"변경하기"를 누르면 인증 설정 Sheet가 열린다', async () =>
 
   await fireEvent.press(screen.getByTestId('settings-security-change-button'));
 
-  expect(screen.getByText('mock security sheet')).toBeTruthy();
+  expect(screen.getByText(/mock security sheet/)).toBeTruthy();
+});
+
+test('"변경하기"를 누르면 현재 방법이 PIN일 때 currentMethod="pin"을 넘긴다', async () => {
+  mockedUseSecuritySetupStatus.mockReturnValue({
+    isSecuritySetUp: true,
+    isLoading: false,
+    refetch: mockedRefetch,
+  });
+  useSecuritySettingsStore.setState({ biometricEnabled: false });
+
+  await render(<SettingSecuritySection />);
+
+  await fireEvent.press(screen.getByTestId('settings-security-change-button'));
+
+  expect(
+    screen.getByText('mock security sheet: currentMethod=pin'),
+  ).toBeTruthy();
+});
+
+test('"변경하기"를 누르면 현재 방법이 생체인증일 때 currentMethod="biometric"을 넘긴다', async () => {
+  mockedUseSecuritySetupStatus.mockReturnValue({
+    isSecuritySetUp: true,
+    isLoading: false,
+    refetch: mockedRefetch,
+  });
+  useSecuritySettingsStore.setState({ biometricEnabled: true });
+
+  await render(<SettingSecuritySection />);
+
+  await fireEvent.press(screen.getByTestId('settings-security-change-button'));
+
+  expect(
+    screen.getByText('mock security sheet: currentMethod=biometric'),
+  ).toBeTruthy();
 });
 
 test('"초기화"를 누르면 확인 Alert을 띄우고, 확인 전에는 아무 것도 지우지 않는다', async () => {
@@ -184,5 +259,5 @@ test('Alert에서 확인하면 PIN을 지우고 생체인증을 끄고 상태를
   expect(useSecuritySettingsStore.getState().biometricEnabled).toBe(false);
   expect(mockedRefetch).toHaveBeenCalled();
   // Task 계획대로 초기화 후 설정 Sheet를 자동으로 다시 열지 않는다.
-  expect(screen.queryByText('mock security sheet')).toBeNull();
+  expect(screen.queryByText(/mock security sheet/)).toBeNull();
 });

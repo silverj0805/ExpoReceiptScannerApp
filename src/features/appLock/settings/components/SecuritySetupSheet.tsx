@@ -13,6 +13,12 @@ interface SecuritySetupSheetProps {
   visible: boolean;
   onClose: () => void;
   onComplete: () => void;
+  /**
+   * 지금 선택돼 있는 인증 방법. "변경하기"(이미 보안 설정이 있는 상태)로 열렸을 때만
+   * 넘겨준다 — 최초 설정(아직 아무 방법도 없음) 땐 null/undefined로 둔다.
+   * 이미 선택된 방법을 다시 눌러도 아무 반응 없게(재등록 강요 안 함) 만드는 데 쓴다.
+   */
+  currentMethod?: 'biometric' | 'pin' | null;
 }
 
 /**
@@ -29,6 +35,7 @@ function SecuritySetupSheet({
   visible,
   onClose,
   onComplete,
+  currentMethod = null,
 }: SecuritySetupSheetProps) {
   const { isSupported, isEnrolled } = useBiometricAuth();
   const setBiometricEnabled = useSecuritySettingsStore(
@@ -55,12 +62,14 @@ function SecuritySetupSheet({
   const showRegister = pinRegisterVisible || !canUseBiometric;
 
   const handleChooseBiometric = () => {
+    if (currentMethod === 'biometric') return; // 이미 선택된 방법 — 아무 반응 없음
     setBiometricEnabled(true);
     setBiometricChosen(true);
     setPinRegisterVisible(true);
   };
 
   const handleChoosePin = () => {
+    if (currentMethod === 'pin') return; // 이미 선택된 방법 — 아무 반응 없음
     setPinRegisterVisible(true);
   };
 
@@ -123,6 +132,7 @@ function SecuritySetupSheet({
             <TouchableOpacity
               testID="choose-biometric"
               onPress={handleChooseBiometric}
+              disabled={currentMethod === 'biometric'}
               className="w-full flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-primary/25 bg-primary/10 p-4"
             >
               <View className="h-11 w-11 items-center justify-center rounded-full bg-white">
@@ -137,19 +147,30 @@ function SecuritySetupSheet({
                   생체인증으로 설정
                 </Text>
                 <Text className="mt-0.5 text-xs text-gray">
-                  추천 · 가장 빠르게 잠금을 해제해요
+                  {currentMethod === 'biometric'
+                    ? '현재 사용 중인 방법이에요'
+                    : '추천 · 가장 빠르게 잠금을 해제해요'}
                 </Text>
               </View>
-              <Icon
-                name="chevron-forward"
-                size={18}
-                colorClassName="accent-gray"
-              />
+              {currentMethod === 'biometric' ? (
+                <Icon
+                  name="checkmark-circle"
+                  size={18}
+                  colorClassName="accent-primary"
+                />
+              ) : (
+                <Icon
+                  name="chevron-forward"
+                  size={18}
+                  colorClassName="accent-gray"
+                />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               testID="choose-pin"
               onPress={handleChoosePin}
+              disabled={currentMethod === 'pin'}
               className="w-full flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-[#e8e6e1] bg-white p-4"
             >
               <View className="h-11 w-11 items-center justify-center rounded-full bg-background">
@@ -163,12 +184,25 @@ function SecuritySetupSheet({
                 <Text className="text-[15px] font-bold text-black">
                   PIN 번호로 할래요
                 </Text>
+                {currentMethod === 'pin' && (
+                  <Text className="mt-0.5 text-xs text-gray">
+                    현재 사용 중인 방법이에요
+                  </Text>
+                )}
               </View>
-              <Icon
-                name="chevron-forward"
-                size={18}
-                colorClassName="accent-gray"
-              />
+              {currentMethod === 'pin' ? (
+                <Icon
+                  name="checkmark-circle"
+                  size={18}
+                  colorClassName="accent-primary"
+                />
+              ) : (
+                <Icon
+                  name="chevron-forward"
+                  size={18}
+                  colorClassName="accent-gray"
+                />
+              )}
             </TouchableOpacity>
 
             <Text className="px-2 text-center text-xs leading-relaxed text-gray">

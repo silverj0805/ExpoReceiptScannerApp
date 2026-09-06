@@ -13,6 +13,7 @@ function renderSheet(props: {
   visible: boolean;
   onClose: () => void;
   onComplete: () => void;
+  currentMethod?: 'biometric' | 'pin' | null;
 }) {
   return render(
     <BottomSheetModalProvider>
@@ -144,6 +145,93 @@ test('PIN 등록 화면으로 넘어간 뒤 닫기를 누르면 선택 화면 �
   await fireEvent.press(screen.getByTestId('security-sheet-close-button'));
 
   expect(screen.getByText('어떤 방법으로 잠글까요?')).toBeTruthy();
+});
+
+// "이미 선택된 방법 클릭 시 무반응" — currentMethod는 "변경하기"(이미 설정된 상태)로 열렸을
+// 때만 넘어온다. 최초 설정(currentMethod: null/undefined)일 땐 아직 선택된 게 없으므로
+// 이 no-op 로직이 적용되면 안 된다(위 테스트들이 이미 그 경로를 커버함).
+test('currentMethod가 "biometric"이면 생체인증으로 설정을 눌러도 아무 반응 없다', async () => {
+  useSecuritySettingsStore.setState({ biometricEnabled: true });
+
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'biometric',
+  });
+
+  await fireEvent.press(screen.getByText('생체인증으로 설정'));
+
+  expect(screen.getByText('어떤 방법으로 잠글까요?')).toBeTruthy();
+  expect(screen.queryByText('PIN 번호를 설정해주세요')).toBeNull();
+});
+
+test('currentMethod가 "pin"이면 PIN 번호로 할래요를 눌러도 아무 반응 없다', async () => {
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'pin',
+  });
+
+  await fireEvent.press(screen.getByText('PIN 번호로 할래요'));
+
+  expect(screen.getByText('어떤 방법으로 잠글까요?')).toBeTruthy();
+  expect(screen.queryByText('PIN 번호를 설정해주세요')).toBeNull();
+});
+
+test('currentMethod가 "pin"이어도 생체인증으로 설정은 정상적으로 등록 폼으로 진행한다', async () => {
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'pin',
+  });
+
+  await fireEvent.press(screen.getByText('생체인증으로 설정'));
+
+  expect(screen.getByText('PIN 번호를 설정해주세요')).toBeTruthy();
+});
+
+test('currentMethod가 "biometric"이어도 PIN 번호로 할래요는 정상적으로 등록 폼으로 진행한다', async () => {
+  useSecuritySettingsStore.setState({ biometricEnabled: true });
+
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'biometric',
+  });
+
+  await fireEvent.press(screen.getByText('PIN 번호로 할래요'));
+
+  expect(screen.getByText('PIN 번호를 설정해주세요')).toBeTruthy();
+});
+
+test('currentMethod가 "biometric"이면 생체인증 옵션에 "현재 사용 중" 문구를 보여준다', async () => {
+  useSecuritySettingsStore.setState({ biometricEnabled: true });
+
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'biometric',
+  });
+
+  expect(screen.getByText('현재 사용 중인 방법이에요')).toBeTruthy();
+  // 추천 문구는 지금 쓰고 있는 방법한테는 의미가 없으니 사라져야 한다.
+  expect(screen.queryByText('추천 · 가장 빠르게 잠금을 해제해요')).toBeNull();
+});
+
+test('currentMethod가 "pin"이면 PIN 옵션에 "현재 사용 중" 문구를 보여준다', async () => {
+  await renderSheet({
+    visible: true,
+    onClose: jest.fn(),
+    onComplete: jest.fn(),
+    currentMethod: 'pin',
+  });
+
+  expect(screen.getByText('현재 사용 중인 방법이에요')).toBeTruthy();
 });
 
 // "visible이 false면 아무것도 렌더링하지 않는다" 테스트는 BottomSheetModal 전환과 함께 제거했다.

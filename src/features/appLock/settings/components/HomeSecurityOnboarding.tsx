@@ -15,7 +15,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  * 미설정 상태에서 오늘 아직 거절한 적 없으면(또는 거절한 지 24시간이 지났으면) 보여준다.
  */
 function HomeSecurityOnboarding() {
-  const { isSecuritySetUp, isLoading } = useSecuritySetupStatus();
+  const { isSecuritySetUp, isLoading, refetch } = useSecuritySetupStatus();
   const onboardingDeclinedAt = useSecuritySettingsStore(
     state => state.onboardingDeclinedAt,
   );
@@ -37,7 +37,14 @@ function HomeSecurityOnboarding() {
   const handleAccept = () => setSheetVisible(true);
   const handleDecline = () => declineOnboardingToday();
   const handleSheetClose = () => setSheetVisible(false);
-  const handleSheetComplete = () => setSheetVisible(false);
+  // refetch()를 안 부르면 이 컴포넌트(홈 화면 마운트 시 한 번 hasPinSet() 조회)의
+  // isSecuritySetUp이 방금 끝난 PIN 등록을 반영 못 한 채 stale하게 false로 남아서,
+  // 시트가 닫히자마자 온보딩 모달이 곧바로 다시 뜬다(실기기 재현으로 확인한 버그 —
+  // 아래 테스트 참고).
+  const handleSheetComplete = () => {
+    setSheetVisible(false);
+    refetch();
+  };
 
   return (
     <>
