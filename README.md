@@ -2,7 +2,7 @@
 
 영수증을 촬영하면 온디바이스 OCR(Optical Character Recognition, 광학 문자 인식)로 가맹점명·금액·날짜를 자동으로 인식해 기록해주는 가계부 앱입니다.
 
-> 이 저장소는 기존 React Native CLI(bare workflow) 프로젝트인 [ReceiptScannerApp](https://github.com/silverj0805/ReceiptScannerApp)을 **Expo / Expo Router 기반으로 이식(migrate)**하는 프로젝트입니다. 백엔드·디자인·비즈니스 로직(OCR 파싱 규칙, API 스펙 등)은 원본과 동일하게 유지하면서, 내비게이션·네이티브 모듈·빌드 방식만 Expo 생태계에 맞게 다시 구성했습니다. (자세한 배경은 아래 [CLI → Expo 마이그레이션](#cli--expo-마이그레이션) 참고)
+> 이 저장소는 기존 React Native CLI(bare workflow) 프로젝트인 [ReceiptScannerApp](https://github.com/silverj0805/ReceiptScannerApp)을 **Expo / Expo Router 기반으로 마이그레이션**하는 프로젝트입니다. 백엔드·디자인·비즈니스 로직(OCR 파싱 규칙, API 스펙 등)은 원본과 동일하게 유지하면서, 내비게이션·네이티브 모듈·빌드 방식만 Expo 생태계에 맞게 다시 구성했습니다. (자세한 배경은 아래 [CLI → Expo 마이그레이션](#cli--expo-마이그레이션) 참고)
 
 ## 주요 기능
 
@@ -11,6 +11,20 @@
 - **직접 작성**: 촬영 없이 수기로도 지출을 기록할 수 있습니다.
 - **월별 요약 및 필터링**: 이번 달 지출 요약, 카테고리·기간별 목록 조회를 지원합니다.
 - **개인정보처리방침 / 이용약관**: 설정 화면 안에서 바로 확인할 수 있습니다.
+- **앱 잠금**: PIN(6자리) 또는 생체인증(Face ID/지문)으로 앱 실행을 잠글 수 있습니다.
+
+## 보안 (App Lock)
+
+로그인이 없는 앱이라 유일한 위협은 "기기를 물리적으로 만질 수 있는 사람"입니다.
+잠깐 손에서 놓거나 잃어버린 기기에서 앱을 곧바로 열어 지출 내역을 들여다볼 수 없게 막는 게 목표이며,
+탈옥/루팅 기기의 포렌식 공격이나 서버 사이드 인증까지 다루지는 않습니다.
+(자세한 내용은 [`SecurityPolicy.md`](src/features/appLock/SecurityPolicy.md) 문서 참고)
+
+- **인증 수단**: 생체인증 또는 PIN(6자리) 중 선택. 생체인증을 골라도 PIN은 대체 수단으로 항상 함께 등록해야 하며, 생체인증이 반복 실패하면 PIN으로 수동 전환할 수 있습니다.
+- **시도 제한**: PIN을 연속 5회 틀리면 일정 시간(프로덕션 기준 3분) 재시도를 막습니다. 실패 횟수와 잠금 만료 시각은 영속 저장소에 저장해서, 앱을 강제 종료했다 재실행해도 우회되지 않습니다.
+- **세션 관리**: 인증 상태는 세션 로컬 값이라 재시작하면 항상 다시 인증해야 하고, 백그라운드 5분 이상 후 복귀하면 재인증을 요구합니다.
+- **저장소**: PIN은 OS 보안 저장소(iOS Keychain / Android Keystore, `expo-secure-store`)에, 잠금 설정 같은 비민감 값은 AsyncStorage에 분리해서 저장합니다. 값이 "재시작으로 우회되면 보안이 뚫리는가"를 기준으로 영속화 여부를 정합니다.
+- **화면 프라이버시**: 잠금 설정 여부와 무관하게, 앱을 백그라운드로 전환하면(iOS) 화면을 가리고 최근 앱 목록 썸네일도 끕니다.
 
 ## 영수증 등록 흐름
 
@@ -48,6 +62,7 @@ sequenceDiagram
 | 카메라/이미지  | react-native-vision-camera (촬영 프리뷰), expo-image-picker (갤러리 선택)                             |
 | 온디바이스 OCR | 커스텀 Expo Module (Android: ML Kit 한국어 인식기 / iOS: Vision 프레임워크)                           |
 | 네트워킹       | Axios, 기기별 `X-Device-Id` 헤더 기반 무가입 인증                                                     |
+| 보안           | expo-secure-store(PIN 저장), expo-local-authentication(생체인증), Zustand persist(AsyncStorage)       |
 | 모니터링       | Firebase Crashlytics (Expo config plugin)                                                             |
 | 네이티브 빌드  | CNG(Continuous Native Generation) — `ios/`·`android/`는 커밋하지 않고 `expo prebuild`로 그때그때 생성 |
 | 기타           | expo-dev-client, expo-splash-screen, react-native-webview, react-native-reanimated                    |
