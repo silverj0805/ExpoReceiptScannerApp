@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import useSessionTimeout from './hooks/useSessionTimeout';
@@ -14,9 +14,28 @@ jest.mock('./bio/components/BioAuthVerify', () => {
   // jest.mock 팩토리는 호이스팅돼서 바깥(모듈 최상단) import를 참조할 수 없어 인라인
   // require가 불가피함.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Text: MockText } = require('react-native');
-  return function MockBioAuthVerify() {
-    return <MockText>mock bio auth verify</MockText>;
+  const { Text: MockText, TouchableOpacity } = require('react-native');
+  // 실제 컴포넌트는 PIN이 등록돼 있을 때만 버튼을 보여주지만, 여기서는 게이트가
+  // onUsePinInstead를 받아 PinVerify로 전환하는지만 보면 되므로 항상 눌러볼 수
+  // 있게 렌더한다(그 조건부 노출 자체는 BioAuthVerify.test.tsx가 다룸).
+  return function MockBioAuthVerify({
+    onUsePinInstead,
+  }: {
+    onUsePinInstead?: () => void;
+  }) {
+    return (
+      <>
+        <MockText>mock bio auth verify</MockText>
+        {onUsePinInstead && (
+          <TouchableOpacity
+            testID="mock-use-pin-instead"
+            onPress={onUsePinInstead}
+          >
+            <MockText>mock use pin instead</MockText>
+          </TouchableOpacity>
+        )}
+      </>
+    );
   };
 });
 
@@ -184,9 +203,59 @@ test('이미 인증된 세션에서는 잠금을 켜도 곧바로 잠기지 않�
     </AppLockGate>,
   );
 
-  act(() => {
+  // 동기 act(() => {...})만 쓰면 이 렌더가 만든 패시브 이펙트(예: usePinInstead
+  // 리셋 이펙트)가 이 act 경계 안에서 다 플러시된다는 보장이 없어("You called
+  // act(async () => ...) without await" 경고와 함께) 다음 테스트로 상태가 샐 수
+  // 있다(실측: 이 테스트 바로 뒤에 오는 테스트가 렌더링에 실패하는 걸로 확인) —
+  // async act로 감싸고 await해서 이 테스트 안에서 확실히 다 정리되게 한다.
+  await act(async () => {
     useAppLockStore.setState({ isLockSetUp: true });
   });
 
   expect(screen.getByText('메인 화면')).toBeTruthy();
+});
+
+// 생체인증을 골랐어도 PIN은 대체 수단으로 등록되므로, Face ID가 계속 실패할
+// 때(마스크·젖은 손 등) PIN 화면으로 전환할 수 있어야 한다.
+test('BioAuthVerify에서 "PIN으로 입력"을 누르면 PinVerify로 전환된다', async () => {
+  useAppLockStore.setState({ isLockSetUp: true, lockType: 'bio' });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  await fireEvent.press(screen.getByTestId('mock-use-pin-instead'));
+
+  expect(screen.getByText('mock pin verify')).toBeTruthy();
+  expect(screen.queryByText('mock bio auth verify')).toBeNull();
+});
+
+// usePinInstead는 세션 로컬 전환일 뿐이라, 인증에 성공해 잠금이 풀리고 나면
+// 다음번에 다시 잠길 때는 원래 방식(생체인증)부터 보여줘야 한다 — 한 번 PIN으로
+// 전환했다고 그 상태가 영구히 남아있으면 안 된다.
+test('PIN으로 전환한 뒤 인증에 성공하면, 다음 잠금 때는 다시 BioAuthVerify부터 보여준다', async () => {
+  useAppLockStore.setState({ isLockSetUp: true, lockType: 'bio' });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  await fireEvent.press(screen.getByTestId('mock-use-pin-instead'));
+  expect(screen.getByText('mock pin verify')).toBeTruthy();
+
+  // 동기 act(() => {...})만 쓰면(테스트9와 같은 이유로) 패시브 이펙트가 이
+  // act 경계 안에서 확실히 플러시된다는 보장이 없다 — async act로 감싸고 await한다.
+  await act(async () => {
+    useAppLockStore.setState({ authenticated: true });
+  });
+  expect(screen.getByText('메인 화면')).toBeTruthy();
+
+  await act(async () => {
+    useAppLockStore.setState({ authenticated: false });
+  });
+  expect(screen.getByText('mock bio auth verify')).toBeTruthy();
 });

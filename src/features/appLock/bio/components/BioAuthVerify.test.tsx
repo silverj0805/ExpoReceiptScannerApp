@@ -6,6 +6,7 @@ import {
 } from '@testing-library/react-native';
 
 import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
+import { hasPinSet } from '../../pin/utils';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import useBioAuth from '../hooks/useBioAuth';
 
@@ -15,6 +16,16 @@ import BioAuthVerify from './BioAuthVerify';
 // 이미 다루므로, 여기서는 BioAuthVerify가 그 결과를 받아 어떻게 반응하는지만 본다.
 jest.mock('../hooks/useBioAuth');
 const mockedUseBioAuth = useBioAuth as jest.Mock;
+
+// PIN 대체 버튼을 보여줄지는 hasPinSet(SecureStore 조회) 결과에 달려 있다 —
+// pin/utils/index.test.ts가 이미 SecureStore 연동 자체는 다루므로 여기선 모킹.
+jest.mock('../../pin/utils');
+const mockedHasPinSet = hasPinSet as jest.Mock;
+
+// authenticate()가 끝나지 않게(pending) 고정해서, 자동 인증 성공/실패로 인한
+// 리렌더가 아래 PIN 대체 버튼 테스트에 섞여들지 않게 한다.
+const pendingAuthenticate = () =>
+  jest.fn().mockReturnValue(new Promise(() => {}));
 
 const mockUseBioAuth = (overrides: Partial<ReturnType<typeof useBioAuth>>) => {
   mockedUseBioAuth.mockReturnValue({
@@ -28,6 +39,7 @@ const mockUseBioAuth = (overrides: Partial<ReturnType<typeof useBioAuth>>) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockedHasPinSet.mockResolvedValue(false);
   useAppLockStore.setState({
     authenticated: false,
     sessionTimedOut: false,
@@ -191,4 +203,54 @@ test('"다시 시도"를 누르면 다시 인증을 시도한다', async () => {
   await waitFor(() => {
     expect(useAppLockStore.getState().authenticated).toBe(true);
   });
+});
+
+// 생체인증을 골랐어도 PIN은 대체 수단으로 함께 등록되므로, Face ID가 계속
+// 실패할 때(마스크·젖은 손·카메라 이물질 등) PIN으로 넘어갈 방법이 있어야
+// 한다. 다만 PIN이 실제로 등록돼 있을 때만 보여준다 — 이 기능 이전부터
+// 생체인증만으로 잠가둔 사용자(PIN 미등록)에게 버튼을 보여주면, 눌러도 어떤
+// PIN도 통과할 수 없는 화면으로 보내는 셈이라 오히려 더 못 들어가게 만든다.
+test('PIN이 등록돼 있으면 "PIN으로 입력" 버튼을 보여준다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
+  mockUseBioAuth({ authenticate: pendingAuthenticate() });
+
+  await render(<BioAuthVerify onUsePinInstead={jest.fn()} />);
+
+  expect(await screen.findByTestId('auth-verify-use-pin')).toBeTruthy();
+});
+
+test('PIN이 등록돼 있지 않으면 "PIN으로 입력" 버튼을 보여주지 않는다', async () => {
+  mockedHasPinSet.mockResolvedValue(false);
+  mockUseBioAuth({ authenticate: pendingAuthenticate() });
+
+  await render(<BioAuthVerify onUsePinInstead={jest.fn()} />);
+
+  await waitFor(() => {
+    expect(mockedHasPinSet).toHaveBeenCalled();
+  });
+  expect(screen.queryByTestId('auth-verify-use-pin')).toBeNull();
+});
+
+test('onUsePinInstead를 안 넘기면 PIN이 있어도 버튼을 보여주지 않는다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
+  mockUseBioAuth({ authenticate: pendingAuthenticate() });
+
+  await render(<BioAuthVerify />);
+
+  await waitFor(() => {
+    expect(mockedHasPinSet).toHaveBeenCalled();
+  });
+  expect(screen.queryByTestId('auth-verify-use-pin')).toBeNull();
+});
+
+test('"PIN으로 입력"을 누르면 onUsePinInstead를 호출한다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
+  const onUsePinInstead = jest.fn();
+  mockUseBioAuth({ authenticate: pendingAuthenticate() });
+
+  await render(<BioAuthVerify onUsePinInstead={onUsePinInstead} />);
+
+  await fireEvent.press(await screen.findByTestId('auth-verify-use-pin'));
+
+  expect(onUsePinInstead).toHaveBeenCalled();
 });

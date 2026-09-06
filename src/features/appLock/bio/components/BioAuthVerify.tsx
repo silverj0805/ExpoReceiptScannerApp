@@ -5,6 +5,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import Icon from '@/shared/components/Icon';
 
 import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
+import { hasPinSet } from '../../pin/utils';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 import useBioAuth from '../hooks/useBioAuth';
 
@@ -19,18 +20,36 @@ function mapErrorMessage(error: LocalAuthenticationError | undefined): string {
   return '인증에 실패했어요. 다시 시도해주세요';
 }
 
+interface BioAuthVerifyProps {
+  /**
+   * PIN 대체 인증으로 전환하고 싶을 때 호출된다(AppLockGate가 PinVerify로
+   * 바꿔 그리는 걸 담당). 등록된 PIN이 있을 때만 전환 버튼을 보여준다 — 안
+   * 넘기면(또는 PIN이 없으면) 버튼 자체를 숨긴다.
+   */
+  onUsePinInstead?: () => void;
+}
+
 /**
  * 잠금 화면에서 실제로 생체인증을 수행하는 화면 — AppLockGate가 잠긴 상태일 때만 이 화면을 그린다.
  *
- * 생체인증 자체를 못 쓰는 기기(하드웨어 없음/미등록)는 지금은 막지 않고 그냥 통과시킨다
- * — PIN 같은 대체 인증 수단이 아직 없어서(추후 고도화 예정)
+ * 생체인증 자체를 못 쓰는 기기(하드웨어 없음/미등록)는 아래 `canUseBiometric`
+ * 분기가 이미 자동으로 통과시킨다(iOS 시뮬레이터로 실측 확인) — 그 경우엔
+ * 애초에 이 화면(잠금 화면) 자체가 뜨지 않으므로 "PIN으로 전환"할 대상이
+ * 없다. 아래 "PIN으로 입력" 버튼은 하드웨어는 있어서 이 화면까지 왔는데
+ * 반복 실패하는 상황(마스크·젖은 손·카메라 이물질 등)을 위한 것이다.
  */
-function BioAuthVerify() {
+function BioAuthVerify({ onUsePinInstead }: BioAuthVerifyProps) {
   const { isReady, isSupported, isEnrolled, authenticate } = useBioAuth();
   const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
   const sessionTimedOut = useAppLockStore(state => state.sessionTimedOut);
   const setSessionTimedOut = useAppLockStore(state => state.setSessionTimedOut);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // 생체인증을 골랐어도 PIN은 대체 수단으로 함께 등록되도록 강제하지만(등록
+  // 화면에서), 이 컴포넌트가 직접 확인하지 않으면 "PIN이 실제로 있는지"를 알
+  // 방법이 없다 — 이 기능 이전부터 생체인증만으로 잠가둔 사용자(PIN 미등록)에게
+  // 버튼을 보여주면 눌러도 통과 못 하는 화면으로 보내는 셈이라, 실제로 있을
+  // 때만 보여줘야 한다.
+  const [pinAvailable, setPinAvailable] = useState(false);
 
   const canUseBiometric = isSupported && isEnrolled;
 
@@ -65,6 +84,18 @@ function BioAuthVerify() {
     // isReady가 true로 바뀌는(=하드웨어 확인이 막 끝난) 순간에만 자동으로 한 번 시도한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, canUseBiometric]);
+
+  useEffect(() => {
+    let cancelled = false;
+    hasPinSet().then(result => {
+      if (!cancelled) {
+        setPinAvailable(result);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!isReady) {
     return null;
@@ -101,13 +132,27 @@ function BioAuthVerify() {
         </View>
       </View>
 
-      <TouchableOpacity
-        testID="auth-verify-retry"
-        onPress={handleAuthenticate}
-        className="w-full max-w-70 items-center rounded-2xl border-[1.5px] border-primary py-3.5"
-      >
-        <Text className="text-[15px] font-bold text-primary">다시 시도</Text>
-      </TouchableOpacity>
+      <View className="w-full max-w-70 gap-2">
+        <TouchableOpacity
+          testID="auth-verify-retry"
+          onPress={handleAuthenticate}
+          className="items-center rounded-2xl border-[1.5px] border-primary py-3.5"
+        >
+          <Text className="text-[15px] font-bold text-primary">다시 시도</Text>
+        </TouchableOpacity>
+
+        {pinAvailable && onUsePinInstead && (
+          <TouchableOpacity
+            testID="auth-verify-use-pin"
+            onPress={onUsePinInstead}
+            className="items-center py-2.5"
+          >
+            <Text className="text-sm font-medium text-gray">
+              PIN으로 입력할게요
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
