@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 /** PIN 등록·검증 화면(PinDots/PinKeypad/pinRegisterModal/pinVerify)이 공통으로 참조하는 자리수. */
-export const PIN_LENGTH = 4;
+export const PIN_LENGTH = 6;
 
 /**
  * PIN은 민감값이라 useAppLockStore(AsyncStorage 기반)가 아니라 보안 저장소

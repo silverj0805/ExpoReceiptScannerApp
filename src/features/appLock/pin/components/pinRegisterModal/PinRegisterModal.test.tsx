@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { PIN_LENGTH, savePin } from '../../utils';
 
@@ -99,10 +99,10 @@ test('확인 단계에서 같은 값을 입력하면 PIN이 저장되고 onCompl
     />,
   );
 
-  await pressDigits('1234'.slice(0, PIN_LENGTH));
-  await pressDigits('1234'.slice(0, PIN_LENGTH));
+  await pressDigits('1'.repeat(PIN_LENGTH));
+  await pressDigits('1'.repeat(PIN_LENGTH));
 
-  expect(mockedSavePin).toHaveBeenCalledWith('1234'.slice(0, PIN_LENGTH));
+  expect(mockedSavePin).toHaveBeenCalledWith('1'.repeat(PIN_LENGTH));
   expect(onComplete).toHaveBeenCalled();
 });
 
@@ -180,6 +180,52 @@ test('PIN 저장 실패 후 다시 입력하면 정상적으로 저장된다', a
   expect(onComplete).toHaveBeenCalled();
 });
 
+// handlePressDigit의 길이 가드(currentPin.length >= PIN_LENGTH)가 클로저 값을
+// 참조하므로, 같은 렌더 사이클 안에서 마지막 자리를 극히 빠르게 두 번 누르면
+// 둘 다 "아직 덜 채워짐"으로 읽어 savePin/onComplete가 중복 호출될 수 있었다.
+// savePin이 아직 안 끝난 상태에서 같은 이벤트 틱 안에 두 번째 탭을 재현해서
+// 검증한다.
+test('마지막 자리를 아주 빠르게 두 번 누르면 저장은 한 번만 일어난다', async () => {
+  const onComplete = jest.fn();
+  let resolveSave: () => void = () => {};
+  mockedSavePin.mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        resolveSave = resolve;
+      }),
+  );
+  await render(
+    <PinRegisterModal
+      visible
+      biometricAlreadyEnabled={false}
+      onComplete={onComplete}
+    />,
+  );
+
+  await pressDigits('1'.repeat(PIN_LENGTH)); // 1단계 완료 → 확인 단계
+  await pressDigits('1'.repeat(PIN_LENGTH - 1)); // 확인 단계 마지막 한 자리 전까지
+
+  // 마지막 자리를 "동시에" 두 번 누른 것처럼, 첫 번째 호출의 savePin이 아직
+  // resolve되지 않은 상태에서 두 번째 탭을 바로 이어 붙인다 — 두 호출 다
+  // await하지 않고 동기적으로 이어서 호출해야 실제 "거의 동시에 두 번 탭"과
+  // 같은 타이밍(첫 호출이 상태를 반영해 리렌더되기 전에 두 번째 호출이 시작됨)을
+  // 재현한다.
+  const lastKey = screen.getByTestId('pin-key-1');
+  await act(() => {
+    fireEvent.press(lastKey);
+    fireEvent.press(lastKey);
+  });
+
+  expect(mockedSavePin).toHaveBeenCalledTimes(1);
+  expect(onComplete).not.toHaveBeenCalled();
+
+  await act(async () => {
+    resolveSave();
+  });
+
+  expect(onComplete).toHaveBeenCalledTimes(1);
+});
+
 test('지우기 키를 누르면 마지막으로 입력한 숫자가 지워진다', async () => {
   await render(
     <PinRegisterModal
@@ -189,13 +235,16 @@ test('지우기 키를 누르면 마지막으로 입력한 숫자가 지워진�
     />,
   );
 
-  await pressDigits('123');
+  // (PIN_LENGTH - 1)자리를 입력한 뒤 지우기로 하나를 지우고 다시 채워서
+  // 1단계(PIN_LENGTH자리)를 끝낸다.
+  await pressDigits('1'.repeat(PIN_LENGTH - 1));
   await fireEvent.press(screen.getByTestId('pin-key-delete'));
-  await pressDigits('4');
-  await pressDigits('4');
+  await pressDigits('1'.repeat(PIN_LENGTH - 1));
+  expect(screen.getByText('다시 한 번 입력해주세요')).toBeTruthy();
 
-  // 마지막 입력을 지운 뒤 4를 눌러 "1234"가 됐고, 그 다음 확인 단계에서 "4"를
-  // 입력했으니(4자리 아직 안 채워짐) 여전히 확인 단계에 머물러 있어야 한다.
+  // 확인 단계에서 한 자리만 입력했으니(PIN_LENGTH자리 아직 안 채워짐) 여전히
+  // 확인 단계에 머물러 있어야 한다.
+  await pressDigits('1');
   expect(screen.getByText('다시 한 번 입력해주세요')).toBeTruthy();
 });
 

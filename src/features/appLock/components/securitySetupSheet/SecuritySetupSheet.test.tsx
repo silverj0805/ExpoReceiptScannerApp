@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 
 import useBioAuth from '../../bio/hooks/useBioAuth';
+import { PIN_LENGTH } from '../../pin/utils';
 import { useAppLockStore } from '../../stores/useAppLockStore';
 
 import SecuritySetupSheet from '.';
@@ -136,8 +137,8 @@ test('PIN이 없는 상태에서 토글을 켜고 등록을 마치면 그제서�
   });
   await screen.findByText('PIN 번호를 설정해주세요');
 
-  await pressDigits('1234');
-  await pressDigits('1234');
+  await pressDigits('1'.repeat(PIN_LENGTH));
+  await pressDigits('1'.repeat(PIN_LENGTH));
 
   expect(useAppLockStore.getState().isLockSetUp).toBe(true);
   expect(useAppLockStore.getState().authenticated).toBe(true);
@@ -278,10 +279,10 @@ test('PIN 등록을 완료하면 savePin이 호출되고 등록 화면이 닫힌
   });
   await screen.findByText('PIN 번호를 설정해주세요');
 
-  await pressDigits('1234');
-  await pressDigits('1234');
+  await pressDigits('1'.repeat(PIN_LENGTH));
+  await pressDigits('1'.repeat(PIN_LENGTH));
 
-  expect(mockedSavePin).toHaveBeenCalledWith('1234');
+  expect(mockedSavePin).toHaveBeenCalledWith('1'.repeat(PIN_LENGTH));
   expect(screen.queryByText('PIN 번호를 설정해주세요')).toBeNull();
   expect(useAppLockStore.getState().isLockSetUp).toBe(true);
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Modal, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,6 +37,17 @@ function PinRegisterModal({
   const [error, setError] = useState<string | null>(null);
   const [wasVisible, setWasVisible] = useState(visible);
   const insets = useSafeAreaInsets();
+  // handlePressDigit의 길이 가드(currentPin.length >= PIN_LENGTH)는 클로저
+  // 값을 참조하므로, 같은 렌더 사이클 안에서 마지막 자리를 극히 빠르게 두 번
+  // 누르면(두 번째 호출이 첫 번째의 setConfirmPin 리렌더가 반영되기 전에
+  // 시작되면) 둘 다 "아직 덜 채워짐"으로 읽어 savePin/onComplete가 중복
+  // 호출될 수 있다. ref는 대입이 즉시(동기) 반영되고 두 호출의 동기 구간이
+  // JS 런투컴플리션 특성상 겹치지 않으므로, state 대신 ref로 막으면 타이밍에
+  // 관계없이 확실히 막힌다. 저장 시도가 끝나면(성공/실패 어느 쪽이든) 아래
+  // handlePressDigit 안에서 바로 false로 되돌리므로, 렌더 중에는 이 값을
+  // 읽거나 쓰지 않는다(react-hooks/refs 규칙 — ref는 렌더 바깥, 즉 이벤트
+  // 핸들러 안에서만 접근한다).
+  const isSavingRef = useRef(false);
 
   // 한 번 등록을 마치고 나중에 다시 이 모달이 열리는 경우(예: "인증 초기화" 이후
   // 재등록) 이전 시도의 stage/입력값이 남아있으면 안 되므로, 다시 열릴 때마다
@@ -73,6 +84,11 @@ function PinRegisterModal({
     if (nextPin.length !== PIN_LENGTH) return;
 
     if (nextPin === firstPin) {
+      // 마지막 자리를 극히 빠르게 두 번 눌러 이 지점에 두 번째로 들어온 경우
+      // — 첫 번째 호출이 이미 저장을 시작했으니 여기서 막는다.
+      if (isSavingRef.current) return;
+      isSavingRef.current = true;
+
       try {
         await savePin(nextPin);
       } catch {
@@ -80,10 +96,16 @@ function PinRegisterModal({
         // try/catch가 없으면 여기서 그냥 멈춘 것처럼 보이고 onComplete도 안
         // 불려서 사용자가 아무 피드백 없이 갇힌다. PIN 불일치와 같은 방식으로
         // confirmPin만 비우고 확인 단계에 그대로 둬서 바로 재시도할 수 있게 한다.
+        isSavingRef.current = false;
         setError('PIN 저장에 실패했어요. 다시 시도해주세요.');
         setConfirmPin('');
         return;
       }
+      // Modal은 visible={false}가 돼도 언마운트되지 않고 숨겨지기만 하므로
+      // (RN Modal의 동작), 나중에 다시 열릴 때를 대비해 여기서도 되돌려
+      // 둔다 — 안 그러면 이 컴포넌트 인스턴스가 재사용될 때 다음 저장
+      // 시도가 영원히 막혀버린다.
+      isSavingRef.current = false;
       onComplete();
       return;
     }
