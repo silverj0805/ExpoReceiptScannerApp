@@ -4,7 +4,7 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import Icon from '@/shared/components/Icon';
 
-import { useAppLock } from '../../hooks/useAppLock';
+import { useAppLockStore } from '../../stores/useAppLockStore';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -13,10 +13,10 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  * 거절한 적 없으면(또는 거절한 지 24시간이 지났으면) 보여준다.
  */
 function LockSetupPromptModal() {
-  const hasHydrated = useAppLock(state => state.hasHydrated);
-  const isLockSetUp = useAppLock(state => state.isLockSetUp);
-  const declinedAt = useAppLock(state => state.declinedAt);
-  const declineToday = useAppLock(state => state.declineToday);
+  const hasHydrated = useAppLockStore(state => state.hasHydrated);
+  const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
+  const declinedAt = useAppLockStore(state => state.declinedAt);
+  const declineToday = useAppLockStore(state => state.declineToday);
 
   const isFocused = useIsFocused();
 

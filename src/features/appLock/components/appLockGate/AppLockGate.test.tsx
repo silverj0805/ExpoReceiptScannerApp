@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
-import { useAppLock } from '../../hooks/useAppLock';
+import { useAppLockStore } from '../../stores/useAppLockStore';
 
 import AppLockGate from './index';
 
 beforeEach(() => {
-  useAppLock.setState({
+  useAppLockStore.setState({
     isLockSetUp: false,
     hasHydrated: true,
     authenticated: false,
@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 test('하이드레이션이 끝나기 전에는 아무것도 보여주지 않는다', async () => {
-  useAppLock.setState({ hasHydrated: false });
+  useAppLockStore.setState({ hasHydrated: false });
 
   await render(
     <AppLockGate>
@@ -37,7 +37,7 @@ test('무잠금 상태면 자식을 그대로 보여준다', async () => {
 });
 
 test('잠금 상태면 자식 대신 플레이스홀더 화면을 보여준다', async () => {
-  useAppLock.setState({ isLockSetUp: true });
+  useAppLockStore.setState({ isLockSetUp: true });
 
   await render(
     <AppLockGate>
@@ -51,7 +51,7 @@ test('잠금 상태면 자식 대신 플레이스홀더 화면을 보여준다',
 
 test('잠금 상태에서 인증하기를 누르고 auth()가 성공하면 자식을 보여준다', async () => {
   const auth = jest.fn().mockResolvedValue(true);
-  useAppLock.setState({ isLockSetUp: true, auth });
+  useAppLockStore.setState({ isLockSetUp: true, auth });
 
   await render(
     <AppLockGate>
@@ -67,7 +67,7 @@ test('잠금 상태에서 인증하기를 누르고 auth()가 성공하면 자�
 
 test('인증하기를 눌러도 auth()가 실패하면 계속 잠긴 채로 남는다', async () => {
   const auth = jest.fn().mockResolvedValue(false);
-  useAppLock.setState({ isLockSetUp: true, auth });
+  useAppLockStore.setState({ isLockSetUp: true, auth });
 
   await render(
     <AppLockGate>
@@ -88,7 +88,7 @@ test('인증하기를 눌러도 auth()가 실패하면 계속 잠긴 채로 남�
 // 세션에서 앱을 쓰고 있던 사람인데도 즉시 잠기는 게 문제였다. authenticated가
 // true인 상태에서 isLockSetUp만 나중에 true가 되는 경우엔 계속 자식을 보여줘야 한다.
 test('이미 인증된 세션에서는 잠금을 켜도 곧바로 잠기지 않는다', async () => {
-  useAppLock.setState({ isLockSetUp: false, authenticated: true });
+  useAppLockStore.setState({ isLockSetUp: false, authenticated: true });
 
   await render(
     <AppLockGate>
@@ -97,7 +97,7 @@ test('이미 인증된 세션에서는 잠금을 켜도 곧바로 잠기지 않�
   );
 
   act(() => {
-    useAppLock.setState({ isLockSetUp: true });
+    useAppLockStore.setState({ isLockSetUp: true });
   });
 
   expect(screen.getByText('메인 화면')).toBeTruthy();

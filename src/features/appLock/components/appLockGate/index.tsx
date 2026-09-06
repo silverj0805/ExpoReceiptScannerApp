@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
 
-import { useAppLock } from '../../hooks/useAppLock';
+import { useAppLockStore } from '../../stores/useAppLockStore';
+import AuthVerify from '../authVerify';
 
 interface AppLockGateProps {
   children: ReactNode;
@@ -14,24 +14,24 @@ interface AppLockGateProps {
  * 자체가 없고, 지금은 세션 타임아웃 같은 "메인 앱을 띄운 채 위에만 덮어야 하는" 요구사항이
  * 없어서 오버레이일 이유도 없다(그런 요구사항이 생기면 그때 오버레이로 바뀔 수 있음).
  *
- * `authenticated`는 `useAppLock`에 있지만 persist 대상에서 빠져 있어(하이드레이션
+ * `authenticated`는 `useAppLockStore`에 있지만 persist 대상에서 빠져 있어(하이드레이션
  * 안 됨) 재시작하면 항상 false로 시작한다
  *
  * 지금은 `auth()`가 실제 생체인증 없이 항상 성공하는 빈 껍데기라, 자동으로 시도하는 대신
  * "인증하기" 버튼을 눌러야 호출되게 해뒀다 — 상태 전환을 눈으로 확인하기 쉽게 하기
  * 위함이고, 나중에 진짜 Face ID가 들어가면 마운트 시 자동 시도로 바꾸면 된다.
  *
- * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLock`은
+ * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLockStore`는
  * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
  * 실제로 잠금이 걸려 있어도 아직 초기값(무잠금)만 보이는 짧은 틈이 있다. 그 틈에
  * 메인 화면을 그려버리면 보안 잠금이 새는 것이므로, 값이 확정될 때까지 기다린다.
  */
 function AppLockGate({ children }: AppLockGateProps) {
-  const isLockSetUp = useAppLock(state => state.isLockSetUp);
-  const hasHydrated = useAppLock(state => state.hasHydrated);
-  const authenticated = useAppLock(state => state.authenticated);
-  const setAuthenticated = useAppLock(state => state.setAuthenticated);
-  const auth = useAppLock(state => state.auth);
+  const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
+  const hasHydrated = useAppLockStore(state => state.hasHydrated);
+  const authenticated = useAppLockStore(state => state.authenticated);
+  const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
+  const auth = useAppLockStore(state => state.auth);
 
   const handleAuthenticate = async () => {
     const success = await auth();
@@ -47,20 +47,7 @@ function AppLockGate({ children }: AppLockGateProps) {
   }
 
   if (isLockSetUp && !authenticated) {
-    return (
-      <View className="flex-1 items-center justify-center gap-4 bg-background">
-        <Text className="text-lg font-bold text-black">
-          🔒 잠금 화면 (준비 중)
-        </Text>
-        <TouchableOpacity
-          testID="app-lock-authenticate"
-          onPress={handleAuthenticate}
-          className="rounded-2xl bg-primary px-6 py-3"
-        >
-          <Text className="text-[15px] font-bold text-white">인증하기</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <AuthVerify onAuthenticate={handleAuthenticate} errorMsg={''} />;
   }
 
   return <>{children}</>;

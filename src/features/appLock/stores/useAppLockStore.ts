@@ -33,7 +33,7 @@ interface UseAppLockState {
 /**
  * 앱 전체 잠금 오케스트레이션 훅
  */
-export const useAppLock = create<UseAppLockState>()(
+export const useAppLockStore = create<UseAppLockState>()(
   persist(
     set => ({
       isLockSetUp: false,
@@ -46,7 +46,7 @@ export const useAppLock = create<UseAppLockState>()(
       auth: async () => true,
     }),
     {
-      name: 'appLock.useAppLock',
+      name: 'appLock.useAppLockStore',
       storage: createJSONStorage(() => AsyncStorage),
       // hasHydrated/authenticated는 둘 다 "이번 실행/세션에서만 유효한" 프로세스 로컬 값이라 저장 대상에서 뺀다
       partialize: state => ({
@@ -55,9 +55,9 @@ export const useAppLock = create<UseAppLockState>()(
       }),
       // 하이드레이션이 끝난(또는 실패한) 시점에 hasHydrated를 true로 뒤집는다.
       // 이 콜백은 항상 create() 호출이 끝난 뒤 비동기로 실행되므로, 여기서 참조하는
-      // useAppLock은 그 시점엔 이미 아래에서 초기화가 끝나 있다.
+      // useAppLockStore는 그 시점엔 이미 아래에서 초기화가 끝나 있다.
       onRehydrateStorage: () => () => {
-        useAppLock.setState({ hasHydrated: true });
+        useAppLockStore.setState({ hasHydrated: true });
       },
     },
   ),

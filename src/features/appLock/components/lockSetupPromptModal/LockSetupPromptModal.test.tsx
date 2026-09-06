@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router, useIsFocused } from 'expo-router';
 
-import { useAppLock } from '../../hooks/useAppLock';
+import { useAppLockStore } from '../../stores/useAppLockStore';
 
 import LockSetupPromptModal from './index';
 
@@ -20,7 +20,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 beforeEach(() => {
   jest.clearAllMocks();
   mockedUseIsFocused.mockReturnValue(true);
-  useAppLock.setState({
+  useAppLockStore.setState({
     hasHydrated: true,
     isLockSetUp: false,
     declinedAt: null,
@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 test('하이드레이션이 끝나기 전에는 아무것도 보여주지 않는다', async () => {
-  useAppLock.setState({ hasHydrated: false });
+  useAppLockStore.setState({ hasHydrated: false });
 
   await render(<LockSetupPromptModal />);
 
@@ -42,7 +42,7 @@ test('무잠금 + 오늘 거절 기록 없음이면 안내 모달을 보여준�
 });
 
 test('이미 잠금 설정된 상태면 안내 모달을 보여주지 않는다', async () => {
-  useAppLock.setState({ isLockSetUp: true });
+  useAppLockStore.setState({ isLockSetUp: true });
 
   await render(<LockSetupPromptModal />);
 
@@ -50,7 +50,7 @@ test('이미 잠금 설정된 상태면 안내 모달을 보여주지 않는다'
 });
 
 test('오늘 이미 거절했으면(24시간 이내) 안내 모달을 보여주지 않는다', async () => {
-  useAppLock.setState({ declinedAt: Date.now() - 60_000 });
+  useAppLockStore.setState({ declinedAt: Date.now() - 60_000 });
 
   await render(<LockSetupPromptModal />);
 
@@ -58,7 +58,7 @@ test('오늘 이미 거절했으면(24시간 이내) 안내 모달을 보여주�
 });
 
 test('거절한 지 24시간이 지났으면 다시 안내 모달을 보여준다', async () => {
-  useAppLock.setState({ declinedAt: Date.now() - (ONE_DAY_MS + 60_000) });
+  useAppLockStore.setState({ declinedAt: Date.now() - (ONE_DAY_MS + 60_000) });
 
   await render(<LockSetupPromptModal />);
 
@@ -70,7 +70,7 @@ test('"다음에 할게요"를 누르면 오늘 거절 기록이 남는다', asy
 
   await fireEvent.press(screen.getByText('다음에 할게요'));
 
-  expect(useAppLock.getState().declinedAt).not.toBeNull();
+  expect(useAppLockStore.getState().declinedAt).not.toBeNull();
 });
 
 test('"네, 설정할게요"를 누르면 설정 화면으로 이동한다', async () => {
