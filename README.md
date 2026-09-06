@@ -1,8 +1,32 @@
-# 🧸 모으곰 (Mogom) — Expo
+<div align="center">
+
+<img src="./assets/1024.png" alt="모으곰" width="180" style="border-radius: 20px;" />
+
+# 🧸 모으곰 (Mogom)
 
 영수증을 촬영하면 온디바이스 OCR(Optical Character Recognition, 광학 문자 인식)로 가맹점명·금액·날짜를 자동으로 인식해 기록해주는 가계부 앱입니다.
 
+</div>
+
 > 이 저장소는 기존 React Native CLI(bare workflow) 프로젝트인 [ReceiptScannerApp](https://github.com/silverj0805/ReceiptScannerApp)을 **Expo / Expo Router 기반으로 마이그레이션**하는 프로젝트입니다. 백엔드·디자인·비즈니스 로직(OCR 파싱 규칙, API 스펙 등)은 원본과 동일하게 유지하면서, 내비게이션·네이티브 모듈·빌드 방식만 Expo 생태계에 맞게 다시 구성했습니다. (자세한 배경은 아래 [CLI → Expo 마이그레이션](#cli--expo-마이그레이션) 참고)
+
+## 데모
+
+|               홈                |               전체 내역                |                상세                 |
+| :-----------------------------: | :------------------------------------: | :---------------------------------: |
+| ![홈](docs/screenshot-home.png) | ![전체 내역](docs/screenshot-list.png) | ![상세](docs/screenshot-detail.png) |
+
+|               스캔                |                 인식 결과 1                  |                 인식 결과 2                  |                 인식 결과 3                  |
+| :-------------------------------: | :------------------------------------------: | :------------------------------------------: | :------------------------------------------: |
+| ![스캔](docs/screenshot-scan.png) | ![인식 결과 1](docs/screenshot-confirm1.png) | ![인식 결과 2](docs/screenshot-confirm2.png) | ![인식 결과 3](docs/screenshot-confirm3.png) |
+
+|                       잠금 안내                        |                        잠금 설정                         |                        PIN 확인                        |
+| :----------------------------------------------------: | :------------------------------------------------------: | :----------------------------------------------------: |
+| ![잠금 안내](docs/security/screenshot-home-modal.jpeg) | ![잠금 설정](docs/security/screenshot-auth-setting.jpeg) | ![PIN 확인](docs/security/screenshot-pin-confirm.jpeg) |
+
+|                      생체인증                      |                     PIN 입력                      |                     인증 잠김                     |
+| :------------------------------------------------: | :-----------------------------------------------: | :-----------------------------------------------: |
+| ![생체인증](docs/security/screenshot-bioauth.jpeg) | ![PIN 입력](docs/security/screenshot-pinauth.png) | ![인증 잠김](docs/security/screenshot-frozen.png) |
 
 ## 주요 기능
 
@@ -70,10 +94,11 @@ sequenceDiagram
 
 ## 아키텍처
 
-- **기능 단위(feature-based) 구조**: `scan`(촬영/인식), `confirm`(인식 결과 확인/수정·직접 기록), `receipt`(홈/목록/상세), `settings`로 화면·API·유틸을 도메인별로 분리했습니다.
+- **기능 단위(feature-based) 구조**: `scan`(촬영/인식), `confirm`(인식 결과 확인/수정·직접 기록), `receipt`(홈/목록/상세), `settings`, `appLock`(PIN/생체인증 앱 잠금)으로 화면·API·유틸을 도메인별로 분리했습니다.
 - **라우팅과 구현의 분리**: `src/app/` 아래 파일은 실제 화면을 렌더링만 하는 얇은 re-export(`export { default } from '@/features/scan/screens/ScanScreen'`)이고, 화면 구현체와 테스트는 `src/features/<feature>/screens/`에 있습니다. Expo Router는 `app/` 아래 모든 파일을 라우트 후보로 스캔하고 [테스트 파일을 두지 말 것을 공식적으로 안내](https://docs.expo.dev/router/reference/testing/)하기 때문입니다.
 - **온디바이스 OCR 커스텀 Expo Module**: `modules/native-receipt-scanner/`에 Android(Kotlin)는 ML Kit, iOS(Swift)는 Vision 프레임워크로 각각 구현하고, 하나의 JS 인터페이스(`NativeReceiptScannerModule.scanText(uri)`)로 호출합니다.
 - **회원가입 없는 인증**: 로그인 절차 없이 기기 식별자(`X-Device-Id`)로 사용자를 구분하며, 모든 요청에 자동으로 실려 나갑니다.
+- **앱 잠금 게이트**: `AppLockGate`가 루트 레이아웃(`src/app/_layout.tsx`)에 항상 마운트돼, 잠금이 걸린 세션이면 메인 앱 대신 인증 화면(PIN/생체인증/얼림)을 통째로 바꿔 그립니다. 인증·시도 제한·세션 정책 등 이 기능이 채택한 보안 정책은 [`appLock/SecurityPolicy.md`](src/features/appLock/SecurityPolicy.md)에 따로 정리했습니다.
 - **에러 모니터링**: 렌더링 중 잡히지 않은 에러와 API 실패를 화면·API 컨텍스트와 함께 Firebase Crashlytics로 기록합니다.
 
 ```
@@ -87,8 +112,9 @@ src/
 │   ├── scan/               # 카메라 촬영, 갤러리 선택
 │   ├── confirm/            # OCR 결과 확인/수정, 직접 기록
 │   ├── receipt/            # 홈, 목록, 상세, 월별 요약
-│   └── settings/           # 설정, 라이선스, 약관 WebView
-├── shared/                 # API 클라이언트, 공통 컴포넌트, Firebase, 전역 스토어
+│   ├── settings/           # 설정, 라이선스, 약관 WebView
+│   └── appLock/            # PIN/생체인증 앱 잠금
+├── shared/                 # API 클라이언트, 공통 컴포넌트 Firebase, 전역 스토어
 └── mocks/                  # MSW 기반 API 목(mock)
 
 modules/
