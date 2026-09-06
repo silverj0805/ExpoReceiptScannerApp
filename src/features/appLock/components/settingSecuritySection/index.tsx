@@ -7,7 +7,7 @@ import { useAppLockStore } from '../../stores/useAppLockStore';
 /**
  * 설정 화면의 보안 섹션 — 잠금 on/off를 토글 하나로 보여주고 바꾼다.
  */
-function SecuritySection() {
+function SettingSecuritySection() {
   const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
   const setLockSetUp = useAppLockStore(state => state.setLockSetUp);
   const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
@@ -50,4 +50,4 @@ function SecuritySection() {
   );
 }
 
-export default SecuritySection;
+export default SettingSecuritySection;

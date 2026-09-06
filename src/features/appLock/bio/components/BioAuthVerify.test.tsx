@@ -5,15 +5,15 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 
-import useBioAuth from '../../hooks/useBioAuth';
 import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
+import useBioAuth from '../hooks/useBioAuth';
 
-import AuthVerify from './index';
+import BioAuthVerify from './BioAuthVerify';
 
 // useBioAuth 자체(하드웨어 감지, authenticateAsync 호출 등)는 useBioAuth.test.ts가
-// 이미 다루므로, 여기서는 AuthVerify가 그 결과를 받아 어떻게 반응하는지만 본다.
-jest.mock('../../hooks/useBioAuth');
+// 이미 다루므로, 여기서는 BioAuthVerify가 그 결과를 받아 어떻게 반응하는지만 본다.
+jest.mock('../hooks/useBioAuth');
 const mockedUseBioAuth = useBioAuth as jest.Mock;
 
 const mockUseBioAuth = (overrides: Partial<ReturnType<typeof useBioAuth>>) => {
@@ -38,7 +38,7 @@ beforeEach(() => {
 test('하드웨어 확인이 끝나기 전에는 아무것도 보여주지 않는다', async () => {
   mockUseBioAuth({ isReady: false });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   expect(screen.toJSON()).toBeNull();
 });
@@ -47,7 +47,7 @@ test('생체인증을 지원하는 기기면 마운트 시 자동으로 인증�
   const authenticate = jest.fn().mockResolvedValue({ success: true });
   mockUseBioAuth({ authenticate });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   await waitFor(() => {
     expect(authenticate).toHaveBeenCalled();
@@ -59,7 +59,7 @@ test('자동 인증에 성공하면 이번 세션이 인증된 것으로 표시�
     authenticate: jest.fn().mockResolvedValue({ success: true }),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   await waitFor(() => {
     expect(useAppLockStore.getState().authenticated).toBe(true);
@@ -70,7 +70,7 @@ test('생체인증을 지원하지 않는 기기는 시도하지 않고 그냥 �
   const authenticate = jest.fn();
   mockUseBioAuth({ isSupported: false, isEnrolled: false, authenticate });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   await waitFor(() => {
     expect(useAppLockStore.getState().authenticated).toBe(true);
@@ -85,7 +85,7 @@ test('인증에 실패하면(일반) 에러 메시지를 보여준다', async ()
       .mockResolvedValue({ success: false, error: 'authentication_failed' }),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   expect(
     await screen.findByText('인증에 실패했어요. 다시 시도해주세요'),
@@ -106,7 +106,7 @@ test('OS가 잠근 상태(lockout)여도 얼리지 않고 일반 에러 메시�
       .mockResolvedValue({ success: false, error: 'lockout' }),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   expect(
     await screen.findByText('인증에 실패했어요. 다시 시도해주세요'),
@@ -121,7 +121,7 @@ test('기기에서 생체인증을 쓸 수 없다는 에러가 오면 그에 맞
       .mockResolvedValue({ success: false, error: 'not_enrolled' }),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   expect(
     await screen.findByText('이 기기에서는 생체인증을 쓸 수 없어요'),
@@ -137,7 +137,7 @@ test('세션 타임아웃으로 재인증이 필요해진 경우 자리 비움 �
     authenticate: jest.fn().mockReturnValue(new Promise(() => {})),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   const minutes = Math.round(SESSION_TIMEOUT_MS / 60_000);
   expect(
@@ -151,7 +151,7 @@ test('콜드 스타트로 인한 평범한 잠금이면 자리 비움 안내 문
     authenticate: jest.fn().mockReturnValue(new Promise(() => {})),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   const minutes = Math.round(SESSION_TIMEOUT_MS / 60_000);
   expect(screen.queryByText(`${minutes}분 이상 자리를 비우셨네요`)).toBeNull();
@@ -167,7 +167,7 @@ test('인증에 성공하면 세션 타임아웃 표시도 초기화된다', asy
     authenticate: jest.fn().mockResolvedValue({ success: true }),
   });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   await waitFor(() => {
     expect(useAppLockStore.getState().sessionTimedOut).toBe(false);
@@ -181,7 +181,7 @@ test('"다시 시도"를 누르면 다시 인증을 시도한다', async () => {
     .mockResolvedValueOnce({ success: true });
   mockUseBioAuth({ authenticate });
 
-  await render(<AuthVerify />);
+  await render(<BioAuthVerify />);
 
   await screen.findByText('인증에 실패했어요. 다시 시도해주세요');
 

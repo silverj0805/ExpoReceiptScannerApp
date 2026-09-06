@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import AppLockGate from '@/features/appLock/components/appLockGate';
+import AppLockGate from '@/features/appLock/AppLockGate';
 import PrivacyScreenCover from '@/shared/components/privacyScreenCover';
 import {
   recordErrorWithContext,

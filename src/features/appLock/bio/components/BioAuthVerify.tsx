@@ -4,9 +4,9 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import Icon from '@/shared/components/Icon';
 
-import useBioAuth from '../../hooks/useBioAuth';
 import { SESSION_TIMEOUT_MS } from '../../hooks/useSessionTimeout';
 import { useAppLockStore } from '../../stores/useAppLockStore';
+import useBioAuth from '../hooks/useBioAuth';
 
 // disableDeviceFallback을 안 켜기로 해서(기본값 false), 생체인증을 여러 번 틀려도
 // OS가 'lockout'을 우리에게 주기 전에 자기 자신의 기기 패스코드 화면을 먼저 띄워서
@@ -25,7 +25,7 @@ function mapErrorMessage(error: LocalAuthenticationError | undefined): string {
  * 생체인증 자체를 못 쓰는 기기(하드웨어 없음/미등록)는 지금은 막지 않고 그냥 통과시킨다
  * — PIN 같은 대체 인증 수단이 아직 없어서(추후 고도화 예정)
  */
-function AuthVerify() {
+function BioAuthVerify() {
   const { isReady, isSupported, isEnrolled, authenticate } = useBioAuth();
   const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
   const sessionTimedOut = useAppLockStore(state => state.sessionTimedOut);
@@ -112,4 +112,4 @@ function AuthVerify() {
   );
 }
 
-export default AuthVerify;
+export default BioAuthVerify;

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { getVersion } from 'react-native-device-info';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import SecuritySection from '@/features/appLock/components/securitySection';
+import SettingSecuritySection from '@/features/appLock/components/settingSecuritySection';
 import Icon from '@/shared/components/Icon';
 
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../../constants/urls';
@@ -77,7 +77,7 @@ function SettingsScreen() {
           onPress={goToLicense}
         />
 
-        <SecuritySection />
+        <SettingSecuritySection />
 
         <View className="flex-row items-center justify-between py-4">
           <Text className="text-sm font-semibold text-gray">앱 버전</Text>

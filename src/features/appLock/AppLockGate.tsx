@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
-import useSessionTimeout from '../../hooks/useSessionTimeout';
-import { useAppLockStore } from '../../stores/useAppLockStore';
-import AuthVerify from '../authVerify';
-import FrozenScreen from '../frozenScreen';
+import BioAuthVerify from './bio/components/BioAuthVerify';
+import FrozenScreen from './components/frozenScreen';
+import useSessionTimeout from './hooks/useSessionTimeout';
+import { useAppLockStore } from './stores/useAppLockStore';
 
 interface AppLockGateProps {
   children: ReactNode;
@@ -19,12 +19,12 @@ interface AppLockGateProps {
  * `authenticated`는 `useAppLockStore`에 있지만 persist 대상에서 빠져 있어(하이드레이션
  * 안 됨) 재시작하면 항상 false로 시작한다.
  *
- * 잠긴 상태에서 실제로 인증을 수행하는 화면은 `AuthVerify`다 — 생체인증 호출·자동
+ * 잠긴 상태에서 실제로 인증을 수행하는 화면은 `BioAuthVerify`다 — 생체인증 호출·자동
  * 시도·에러 메시지 처리를 전부 그쪽 책임으로 두고, 이 게이트는 어떤 화면을 보여줄지
  * 결정하는 조건부 스왑 셸 역할만 한다.
  *
- * 인증을 너무 많이 틀려 OS가 lockout으로 판단하면(AuthVerify가 감지해서
- * useAppLockStore.freeze()를 부름) frozenUntil이 설정되고, 그동안은 AuthVerify
+ * 인증을 너무 많이 틀려 OS가 lockout으로 판단하면(BioAuthVerify가 감지해서
+ * useAppLockStore.freeze()를 부름) frozenUntil이 설정되고, 그동안은 BioAuthVerify
  * 대신 `FrozenScreen`을 보여준다 — 얼어붙은 동안은 재시도 자체를 막는다.
  *
  * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLockStore`는
@@ -58,7 +58,7 @@ function AppLockGate({ children }: AppLockGateProps) {
   }
 
   if (isLockSetUp && !authenticated) {
-    return <AuthVerify />;
+    return <BioAuthVerify />;
   }
 
   return <>{children}</>;
