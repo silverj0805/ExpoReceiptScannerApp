@@ -61,6 +61,12 @@ function SecuritySetupSheet({ visible, onClose }: SecuritySetupSheetProps) {
   // dismiss()를 또 부르지 않게 막는다.
   const dismissHandledRef = useRef(false);
   const [pinRegisterVisible, setPinRegisterVisible] = useState(false);
+  // handleToggle이 PIN 미등록으로 PinRegisterModal을 띄운 경우에만 true —
+  // handlePinRegisterComplete가 이걸 보고 "지금 완료된 등록이 막 잠금을 켜기
+  // 위한 것이었는지"를 구분한다(생체/PIN 방식 전환 중에 뜬 등록과 구분해야
+  // 아래에서 불필요하게 isLockSetUp을 다시 켜지 않음 — 다만 이미 true인 값을
+  // 다시 true로 set해도 해는 없어서 엄밀히는 방어적 구분에 가깝다).
+  const pendingEnableRef = useRef(false);
 
   useEffect(() => {
     if (visible) {
@@ -110,18 +116,46 @@ function SecuritySetupSheet({ visible, onClose }: SecuritySetupSheetProps) {
   };
 
   const handleToggle = (enabled: boolean) => {
-    setLockSetUp(enabled);
-    if (!enabled) return;
-
-    // 방금 토글을 켠 사람은 이미 이 세션에서 앱을 쓰고 있던 사람이다 — 켜자마자
-    // AppLockGate(앱 루트에 항상 마운트돼 있음)에 다시 걸려 지금 보던 설정 화면이
-    // 잠금 화면으로 바뀌는 걸 막기 위해, 켜는 순간 이번 세션을 인증된 것으로 표시한다.
-    setAuthenticated(true);
+    if (!enabled) {
+      setLockSetUp(false);
+      return;
+    }
 
     if (lockType == null) {
       setLockType(pickDefaultLockType());
     }
-    ensurePinRegistered();
+    void enableLockOncePinReady();
+  };
+
+  /**
+   * 잠금을 "진짜로" 켠다 — PIN이 실제로 SecureStore에 저장돼 있을 때만
+   * isLockSetUp을 true로 persist한다.
+   *
+   * 이전엔 토글을 누르는 즉시 isLockSetUp을 켰는데, PIN 등록(비동기, 별도
+   * 화면에서 두 번 입력해야 함)이 끝나기 전에 앱이 강제 종료되면 재실행 시
+   * AppLockGate는 persist된 isLockSetUp/lockType만 보고 PinVerify를 그리는데
+   * SecureStore엔 PIN이 전혀 없어 어떤 값을 입력해도 통과할 수 없다 — 취소
+   * 동선도 없어(PinRegisterModal 주석 참고) 사용자가 자기 앱에 영영 못
+   * 들어가는 상태가 될 수 있었다(코드 추적으로 확인, 실기기 재현은 아님).
+   *
+   * PIN이 저장된 시점까지 isLockSetUp을 미루면, 등록 도중 앱이 죽어도
+   * "잠금이 그냥 안 걸린 채로 남는" 안전한 쪽으로 실패한다 — 최악의 경우도
+   * 사용자가 설정에서 토글을 다시 켜면 그만이다.
+   */
+  const enableLockOncePinReady = async () => {
+    const pinAlreadySet = await hasPinSet();
+    if (pinAlreadySet) {
+      setLockSetUp(true);
+      // 방금 토글을 켠 사람은 이미 이 세션에서 앱을 쓰고 있던 사람이다 — 켜자마자
+      // AppLockGate(앱 루트에 항상 마운트돼 있음)에 다시 걸려 지금 보던 설정
+      // 화면이 잠금 화면으로 바뀌는 걸 막기 위해, 켜는 순간 이번 세션을 인증된
+      // 것으로 표시한다.
+      setAuthenticated(true);
+      return;
+    }
+
+    pendingEnableRef.current = true;
+    setPinRegisterVisible(true);
   };
 
   const handleChooseBiometric = () => {
@@ -155,6 +189,12 @@ function SecuritySetupSheet({ visible, onClose }: SecuritySetupSheetProps) {
 
   const handlePinRegisterComplete = () => {
     setPinRegisterVisible(false);
+
+    if (pendingEnableRef.current) {
+      pendingEnableRef.current = false;
+      setLockSetUp(true);
+      setAuthenticated(true);
+    }
   };
 
   const handleClosePress = () => {

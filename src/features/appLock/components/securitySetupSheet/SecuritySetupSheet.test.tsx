@@ -89,27 +89,57 @@ test('토글이 꺼져있으면 방법 선택과 인증 초기화가 비활성�
   ).toBe(true);
 });
 
-test('토글을 켜면 isLockSetUp이 true가 된다', async () => {
+// PIN이 실제로 저장되기 전에 isLockSetUp이 먼저 persist되면, PIN 등록 도중
+// 앱이 강제 종료됐을 때 재실행 시 "잠금은 켜져 있는데 PIN은 없는" 상태가 돼
+// 사용자가 영영 못 들어갈 수 있다 — 그래서 PIN이 이미 있을 때만 토글 즉시 잠금이 활성화되고,
+// 없으면 등록을 마쳐야만 활성화되게 한다.
+test('PIN이 이미 있으면 토글을 켜자마자 잠금이 활성화된다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
   await renderSheet({ visible: true, onClose: jest.fn() });
 
-  await fireEvent(
-    screen.getByTestId('security-sheet-toggle'),
-    'valueChange',
-    true,
-  );
+  await act(async () => {
+    fireEvent(screen.getByTestId('security-sheet-toggle'), 'valueChange', true);
+  });
 
   expect(useAppLockStore.getState().isLockSetUp).toBe(true);
 });
 
-test('토글을 켜면 이번 세션이 인증된 것으로 표시된다', async () => {
+test('PIN이 이미 있으면 토글을 켜자마자 이번 세션이 인증된 것으로 표시된다', async () => {
+  mockedHasPinSet.mockResolvedValue(true);
   await renderSheet({ visible: true, onClose: jest.fn() });
 
-  await fireEvent(
-    screen.getByTestId('security-sheet-toggle'),
-    'valueChange',
-    true,
-  );
+  await act(async () => {
+    fireEvent(screen.getByTestId('security-sheet-toggle'), 'valueChange', true);
+  });
 
+  expect(useAppLockStore.getState().authenticated).toBe(true);
+});
+
+test('PIN이 없으면 토글을 켜도 PIN 등록을 마치기 전까지 잠금이 활성화되지 않는다', async () => {
+  mockedHasPinSet.mockResolvedValue(false);
+  await renderSheet({ visible: true, onClose: jest.fn() });
+
+  await act(async () => {
+    fireEvent(screen.getByTestId('security-sheet-toggle'), 'valueChange', true);
+  });
+  await screen.findByText('PIN 번호를 설정해주세요');
+
+  expect(useAppLockStore.getState().isLockSetUp).toBe(false);
+});
+
+test('PIN이 없는 상태에서 토글을 켜고 등록을 마치면 그제서야 잠금과 인증이 활성화된다', async () => {
+  mockedHasPinSet.mockResolvedValue(false);
+  await renderSheet({ visible: true, onClose: jest.fn() });
+
+  await act(async () => {
+    fireEvent(screen.getByTestId('security-sheet-toggle'), 'valueChange', true);
+  });
+  await screen.findByText('PIN 번호를 설정해주세요');
+
+  await pressDigits('1234');
+  await pressDigits('1234');
+
+  expect(useAppLockStore.getState().isLockSetUp).toBe(true);
   expect(useAppLockStore.getState().authenticated).toBe(true);
 });
 
@@ -253,6 +283,7 @@ test('PIN 등록을 완료하면 savePin이 호출되고 등록 화면이 닫힌
 
   expect(mockedSavePin).toHaveBeenCalledWith('1234');
   expect(screen.queryByText('PIN 번호를 설정해주세요')).toBeNull();
+  expect(useAppLockStore.getState().isLockSetUp).toBe(true);
 });
 
 test('닫기 버튼을 누르면 onClose를 호출한다', async () => {
