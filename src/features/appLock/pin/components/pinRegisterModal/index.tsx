@@ -73,7 +73,17 @@ function PinRegisterModal({
     if (nextPin.length !== PIN_LENGTH) return;
 
     if (nextPin === firstPin) {
-      await savePin(nextPin);
+      try {
+        await savePin(nextPin);
+      } catch {
+        // SecureStore 접근 자체가 실패하는(키체인 접근 실패 등) 드문 상황 —
+        // try/catch가 없으면 여기서 그냥 멈춘 것처럼 보이고 onComplete도 안
+        // 불려서 사용자가 아무 피드백 없이 갇힌다. PIN 불일치와 같은 방식으로
+        // confirmPin만 비우고 확인 단계에 그대로 둬서 바로 재시도할 수 있게 한다.
+        setError('PIN 저장에 실패했어요. 다시 시도해주세요.');
+        setConfirmPin('');
+        return;
+      }
       onComplete();
       return;
     }

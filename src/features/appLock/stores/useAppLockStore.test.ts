@@ -13,6 +13,7 @@ beforeEach(async () => {
     backgroundStartedAt: null,
     sessionTimedOut: false,
     frozenUntil: null,
+    pinFailCount: 0,
   });
   // 이전 테스트에서 쓴 값이 남아있다가 나중에 비동기로 rehydrate되며 덮어쓰는 걸 방지 —
   // 스토리지를 비운 뒤 명시적으로 한 번 재수화시켜 매 테스트를 결정론적으로 시작한다.
@@ -259,4 +260,52 @@ test('frozenUntil은 AsyncStorage에 저장된다(재시작해도 유지돼야 �
     setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
   expect(JSON.parse(savedRaw).state.frozenUntil).not.toBeUndefined();
   expect(JSON.parse(savedRaw).state.frozenUntil).not.toBeNull();
+});
+
+// pinFailCount는 "PIN을 몇 번 연속으로 틀렸는지"를 나타낸다. 생체인증은 OS가
+// 자체적으로 시도 횟수를 세주지만 PIN은 이 앱이 직접 세야 하는데, 컴포넌트
+// 로컬 상태로 두면 앱을 강제 종료했다 재실행하는 것만으로 0으로 리셋돼
+// "5회 제한"이 무력화된다 — frozenUntil과 같은 이유로 반드시 영속화해야 한다.
+test('초기값은 pinFailCount가 0이다', () => {
+  expect(useAppLockStore.getState().pinFailCount).toBe(0);
+});
+
+test('setPinFailCount(n)을 호출하면 값이 반영된다', () => {
+  useAppLockStore.getState().setPinFailCount(3);
+
+  expect(useAppLockStore.getState().pinFailCount).toBe(3);
+});
+
+test('setPinFailCount(updater)로 이전 값 기반으로 갱신할 수 있다', () => {
+  useAppLockStore.getState().setPinFailCount(2);
+
+  useAppLockStore.getState().setPinFailCount(count => count + 1);
+
+  expect(useAppLockStore.getState().pinFailCount).toBe(3);
+});
+
+test('pinFailCount는 AsyncStorage에 저장된다(재시작해도 유지돼야 함)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLockStore.getState().setPinFailCount(2);
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.pinFailCount).toBe(2);
+});
+
+// 쿨다운이 다 끝나고 사용자가 직접 "다시 시도"를 눌러 얼어붙은 상태를 풀 때,
+// pinFailCount도 같이 0으로 안 돌아가면 재시도 딱 한 번만 더 틀려도(이미
+// MAX_PIN_ATTEMPTS 근처에 가 있으므로) 곧바로 다시 얼어붙어버린다.
+test('unfreeze()를 호출하면 pinFailCount도 0으로 초기화된다', () => {
+  useAppLockStore.getState().setPinFailCount(5);
+  useAppLockStore.getState().freeze();
+
+  useAppLockStore.getState().unfreeze();
+
+  expect(useAppLockStore.getState().pinFailCount).toBe(0);
 });

@@ -49,12 +49,22 @@ interface UseAppLockState {
    * 영속화돼야 한다 — 앱을 껐다 켜서 그 틈을 타 우회하면 안 되기 때문이다.
    */
   frozenUntil: number | null;
+  /**
+   * PIN 검증을 몇 번 연속으로 틀렸는지. 생체인증은 OS가 자체적으로 시도
+   * 횟수를 세주지만 PIN은 이 앱이 직접 세야 하는데, 컴포넌트 로컬 상태로
+   * 두면 앱을 강제 종료했다 재실행하는 것만으로 0으로 리셋돼(컴포넌트가
+   * 통째로 리마운트되므로) "5회 제한"이 무력화된다 — frozenUntil과 같은
+   * 이유로 반드시 영속화해야 한다.
+   */
+  pinFailCount: number;
   setLockSetUp: (enabled: boolean) => void;
   setLockType: (lockType: 'bio' | 'pin' | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
   setBackgroundStartedAt: (backgroundStartedAt: number | null) => void;
   setSessionTimedOut: (sessionTimedOut: boolean) => void;
   declineToday: () => void;
+  /** useState의 setter와 동일한 형태 — 값을 직접 주거나, 이전 값 기반 업데이트 함수를 준다. */
+  setPinFailCount: (updater: number | ((count: number) => number)) => void;
   /** 지금부터 FREEZE_DURATION_MS 동안 얼어붙는다. */
   freeze: () => void;
   /** 얼어붙은 상태를 해제한다. */
@@ -83,6 +93,7 @@ export const useAppLockStore = create<UseAppLockState>()(
       backgroundStartedAt: null,
       sessionTimedOut: false,
       frozenUntil: null,
+      pinFailCount: 0,
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
       setLockType: lockType => set({ lockType }),
       setAuthenticated: authenticated => set({ authenticated }),
@@ -90,20 +101,33 @@ export const useAppLockStore = create<UseAppLockState>()(
         set({ backgroundStartedAt }),
       setSessionTimedOut: sessionTimedOut => set({ sessionTimedOut }),
       declineToday: () => set({ declinedAt: Date.now() }),
+      setPinFailCount: updater =>
+        set(state => ({
+          pinFailCount:
+            typeof updater === 'function'
+              ? updater(state.pinFailCount)
+              : updater,
+        })),
       freeze: () => set({ frozenUntil: Date.now() + FREEZE_DURATION_MS }),
-      unfreeze: () => set({ frozenUntil: null }),
+      // 쿨다운이 다 끝나고 사용자가 직접 "다시 시도"를 눌러 얼어붙은 상태를
+      // 풀 때 pinFailCount도 같이 0으로 안 돌아가면, 재시도 딱 한 번만 더
+      // 틀려도(이미 MAX_PIN_ATTEMPTS 근처에 가 있으므로) 곧바로 다시
+      // 얼어붙어버린다.
+      unfreeze: () => set({ frozenUntil: null, pinFailCount: 0 }),
     }),
     {
       name: 'appLock.useAppLockStore',
       storage: createJSONStorage(() => AsyncStorage),
       // hasHydrated/authenticated/backgroundStartedAt/sessionTimedOut은 전부
       // "이번 실행/세션에서만 유효한" 프로세스 로컬 값이라 저장 대상에서 뺀다.
-      // frozenUntil은 반대로 반드시 포함해야 한다(재시작으로 우회되면 안 되므로).
+      // frozenUntil/pinFailCount는 반대로 반드시 포함해야 한다(재시작으로
+      // 우회되면 안 되므로).
       partialize: state => ({
         isLockSetUp: state.isLockSetUp,
         lockType: state.lockType,
         declinedAt: state.declinedAt,
         frozenUntil: state.frozenUntil,
+        pinFailCount: state.pinFailCount,
       }),
       // 하이드레이션이 끝난(또는 실패한) 시점에 hasHydrated를 true로 뒤집는다.
       // 이 콜백은 항상 create() 호출이 끝난 뒤 비동기로 실행되므로, 여기서 참조하는
