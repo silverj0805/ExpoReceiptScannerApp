@@ -11,7 +11,7 @@ beforeEach(() => {
 test('무잠금 상태면 잠금 풀림 아이콘과 안내문구, OFF 토글을 보여준다', async () => {
   await render(<SecuritySection />);
 
-  expect(screen.getByText('앱 잠금')).toBeTruthy();
+  expect(screen.getByText('앱 잠금 OFF')).toBeTruthy();
   expect(screen.getByText('생체인증으로 앱을 잠글 수 있어요')).toBeTruthy();
   expect(screen.getByTestId('security-section-toggle').props.value).toBe(false);
 });

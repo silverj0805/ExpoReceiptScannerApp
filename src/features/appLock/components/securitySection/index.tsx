@@ -30,7 +30,9 @@ function SecuritySection() {
           />
         </View>
         <View className="gap-0.5">
-          <Text className="text-sm font-bold text-black">앱 잠금</Text>
+          <Text className="text-sm font-bold text-black">
+            앱 잠금 {isLockSetUp ? 'ON' : 'OFF'}
+          </Text>
           <Text className="text-xs text-gray">
             {isLockSetUp
               ? '생체인증으로 잠겨 있어요'

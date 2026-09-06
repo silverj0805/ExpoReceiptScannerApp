@@ -63,14 +63,6 @@ test('상태가 바뀌면 실제로 AsyncStorage에 저장된다', async () => {
   expect(JSON.parse(savedRaw).state.isLockSetUp).toBe(true);
 });
 
-// auth()는 지금은 실제 생체인증 없이 항상 성공하는 빈 껍데기다 — 진짜 인증 로직은
-// 나중 작업에서 이 자리를 교체한다.
-test('auth()는 지금은 항상 true로 해결되는 빈 껍데기다', async () => {
-  const result = await useAppLockStore.getState().auth();
-
-  expect(result).toBe(true);
-});
-
 // persist는 AsyncStorage에서 값을 비동기로 읽어온다 — 콜드 스타트 시 실제 값이
 // 무엇이든 하이드레이션이 끝나기 전엔 그걸 반영 못 한 초기값(isLockSetUp: false)만
 // 보인다. hasHydrated로 "아직 실제 값을 모른다"는 상태를 구분해야, 게이트가 그 틈에

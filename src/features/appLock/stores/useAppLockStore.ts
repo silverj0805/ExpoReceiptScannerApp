@@ -23,11 +23,6 @@ interface UseAppLockState {
   setLockSetUp: (enabled: boolean) => void;
   setAuthenticated: (authenticated: boolean) => void;
   declineToday: () => void;
-  /**
-   * 인증을 시도한다. 지금은 실제 생체인증 없이 항상 성공하는 빈 껍데기다 —
-   * 이 자리에 나중에 진짜 생체인증 로직이 들어간다(다음 작업).
-   */
-  auth: () => Promise<boolean>;
 }
 
 /**
@@ -43,7 +38,6 @@ export const useAppLockStore = create<UseAppLockState>()(
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
       setAuthenticated: authenticated => set({ authenticated }),
       declineToday: () => set({ declinedAt: Date.now() }),
-      auth: async () => true,
     }),
     {
       name: 'appLock.useAppLockStore',

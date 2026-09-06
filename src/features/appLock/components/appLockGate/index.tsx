@@ -15,11 +15,11 @@ interface AppLockGateProps {
  * 없어서 오버레이일 이유도 없다(그런 요구사항이 생기면 그때 오버레이로 바뀔 수 있음).
  *
  * `authenticated`는 `useAppLockStore`에 있지만 persist 대상에서 빠져 있어(하이드레이션
- * 안 됨) 재시작하면 항상 false로 시작한다
+ * 안 됨) 재시작하면 항상 false로 시작한다.
  *
- * 지금은 `auth()`가 실제 생체인증 없이 항상 성공하는 빈 껍데기라, 자동으로 시도하는 대신
- * "인증하기" 버튼을 눌러야 호출되게 해뒀다 — 상태 전환을 눈으로 확인하기 쉽게 하기
- * 위함이고, 나중에 진짜 Face ID가 들어가면 마운트 시 자동 시도로 바꾸면 된다.
+ * 잠긴 상태에서 실제로 인증을 수행하는 화면은 `AuthVerify`다 — 생체인증 호출·자동
+ * 시도·에러 메시지 처리를 전부 그쪽 책임으로 두고, 이 게이트는 어떤 화면을 보여줄지
+ * 결정하는 조건부 스왑 셸 역할만 한다.
  *
  * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLockStore`는
  * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
@@ -30,13 +30,6 @@ function AppLockGate({ children }: AppLockGateProps) {
   const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
   const hasHydrated = useAppLockStore(state => state.hasHydrated);
   const authenticated = useAppLockStore(state => state.authenticated);
-  const setAuthenticated = useAppLockStore(state => state.setAuthenticated);
-  const auth = useAppLockStore(state => state.auth);
-
-  const handleAuthenticate = async () => {
-    const success = await auth();
-    if (success) setAuthenticated(true);
-  };
 
   // persist가 AsyncStorage에서 실제 잠금 설정 값을 아직 다 읽어오지 못한 상태다 —
   // 이 시점의 isLockSetUp은 하이드레이션 전 초기값(false)일 뿐 실제 값이 아니므로,
@@ -47,7 +40,7 @@ function AppLockGate({ children }: AppLockGateProps) {
   }
 
   if (isLockSetUp && !authenticated) {
-    return <AuthVerify onAuthenticate={handleAuthenticate} errorMsg={''} />;
+    return <AuthVerify />;
   }
 
   return <>{children}</>;
