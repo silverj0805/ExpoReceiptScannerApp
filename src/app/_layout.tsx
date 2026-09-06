@@ -3,9 +3,11 @@ import '@/global.css';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppLockGate from '@/features/appLock/AppLockGate';
@@ -14,7 +16,7 @@ import {
   recordErrorWithContext,
   setScreenForTracking,
 } from '@/shared/firebase/crashlyticsRecorder';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { useCurrentScreenStore } from '@/shared/store/currentScreen';
 
 /**
  * 루트 레이아웃 — CLI 버전의 App.tsx + RootNavigator를 합친 역할.
@@ -49,12 +51,17 @@ function ScreenTracker() {
 }
 
 export default function RootLayout() {
+  const currentScreen = useCurrentScreenStore(state => state.currentScreen);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <QueryClientProvider client={queryClient}>
           <SafeAreaProvider>
             <ErrorBoundary onError={handleError}>
+              <StatusBar
+                style={currentScreen?.includes('scan') ? 'light' : 'dark'}
+              />
               <ScreenTracker />
               <PrivacyScreenCover>
                 <AppLockGate>
