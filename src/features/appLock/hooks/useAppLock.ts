@@ -7,6 +7,13 @@ interface UseAppLockState {
   isLockSetUp: boolean;
   /** 홈 온보딩 모달을 마지막으로 거절한 시각(ms). 거절한 적 없으면 null. */
   declinedAt: number | null;
+  /**
+   * persist가 AsyncStorage에서 실제 값을 다 읽어왔는지 여부. 콜드 스타트 시
+   * 스토어는 이 값이 채워지기 전까지 먼저 초기값(isLockSetUp: false)으로 생성되므로,
+   * 하이드레이션 전에 isLockSetUp만 보면 실제로 잠금 설정이 돼 있어도 무잠금으로
+   * 오판할 수 있다 — 이 틈에 게이트가 메인 화면을 새어 보여주지 않도록 구분해서 쓴다.
+   */
+  hasHydrated: boolean;
   setLockSetUp: (enabled: boolean) => void;
   declineToday: () => void;
   /**
@@ -24,6 +31,7 @@ export const useAppLock = create<UseAppLockState>()(
     set => ({
       isLockSetUp: false,
       declinedAt: null,
+      hasHydrated: false,
       setLockSetUp: enabled => set({ isLockSetUp: enabled }),
       declineToday: () => set({ declinedAt: Date.now() }),
       auth: async () => true,
@@ -31,6 +39,12 @@ export const useAppLock = create<UseAppLockState>()(
     {
       name: 'appLock.useAppLock',
       storage: createJSONStorage(() => AsyncStorage),
+      // 하이드레이션이 끝난(또는 실패한) 시점에 hasHydrated를 true로 뒤집는다.
+      // 이 콜백은 항상 create() 호출이 끝난 뒤 비동기로 실행되므로, 여기서 참조하는
+      // useAppLock은 그 시점엔 이미 아래에서 초기화가 끝나 있다.
+      onRehydrateStorage: () => () => {
+        useAppLock.setState({ hasHydrated: true });
+      },
     },
   ),
 );

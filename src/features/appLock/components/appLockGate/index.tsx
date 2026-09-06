@@ -20,9 +20,15 @@ interface AppLockGateProps {
  * 지금은 `auth()`가 실제 생체인증 없이 항상 성공하는 빈 껍데기라, 자동으로 시도하는 대신
  * "인증하기" 버튼을 눌러야 호출되게 해뒀다 — 상태 전환을 눈으로 확인하기 쉽게 하기
  * 위함이고, 나중에 진짜 Face ID가 들어가면 마운트 시 자동 시도로 바꾸면 된다.
+ *
+ * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLock`은
+ * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
+ * 실제로 잠금이 걸려 있어도 아직 초기값(무잠금)만 보이는 짧은 틈이 있다. 그 틈에
+ * 메인 화면을 그려버리면 보안 잠금이 새는 것이므로, 값이 확정될 때까지 기다린다.
  */
 function AppLockGate({ children }: AppLockGateProps) {
   const isLockSetUp = useAppLock(state => state.isLockSetUp);
+  const hasHydrated = useAppLock(state => state.hasHydrated);
   const auth = useAppLock(state => state.auth);
   const [authenticated, setAuthenticated] = useState(false);
 
@@ -30,6 +36,14 @@ function AppLockGate({ children }: AppLockGateProps) {
     const success = await auth();
     if (success) setAuthenticated(true);
   };
+
+  // persist가 AsyncStorage에서 실제 잠금 설정 값을 아직 다 읽어오지 못한 상태다 —
+  // 이 시점의 isLockSetUp은 하이드레이션 전 초기값(false)일 뿐 실제 값이 아니므로,
+  // 여기서 자식(메인 화면)을 그려버리면 실제로는 잠금이 걸려 있어도 잠깐 노출될 수
+  // 있다. 값이 무엇인지 확정되기 전까진 아무것도 그리지 않는다.
+  if (!hasHydrated) {
+    return null;
+  }
 
   if (isLockSetUp && !authenticated) {
     return (

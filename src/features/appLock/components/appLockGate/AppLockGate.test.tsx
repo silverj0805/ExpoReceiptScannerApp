@@ -8,8 +8,21 @@ import AppLockGate from './index';
 beforeEach(() => {
   useAppLock.setState({
     isLockSetUp: false,
+    hasHydrated: true,
     auth: jest.fn().mockResolvedValue(true),
   });
+});
+
+test('하이드레이션이 끝나기 전에는 아무것도 보여주지 않는다', async () => {
+  useAppLock.setState({ hasHydrated: false });
+
+  await render(
+    <AppLockGate>
+      <Text>메인 화면</Text>
+    </AppLockGate>,
+  );
+
+  expect(screen.toJSON()).toBeNull();
 });
 
 test('무잠금 상태면 자식을 그대로 보여준다', async () => {

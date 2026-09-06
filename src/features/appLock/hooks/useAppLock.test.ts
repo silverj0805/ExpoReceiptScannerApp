@@ -66,3 +66,21 @@ test('auth()는 지금은 항상 true로 해결되는 빈 껍데기다', async (
 
   expect(result).toBe(true);
 });
+
+// persist는 AsyncStorage에서 값을 비동기로 읽어온다 — 콜드 스타트 시 실제 값이
+// 무엇이든 하이드레이션이 끝나기 전엔 그걸 반영 못 한 초기값(isLockSetUp: false)만
+// 보인다. hasHydrated로 "아직 실제 값을 모른다"는 상태를 구분해야, 게이트가 그 틈에
+// 진짜 잠금 상태를 무잠금으로 착각해 메인 화면을 새어 보여주는 걸 막을 수 있다.
+test('하이드레이션이 끝나기 전에는 hasHydrated가 false다', () => {
+  useAppLock.setState({ hasHydrated: false });
+
+  expect(useAppLock.getState().hasHydrated).toBe(false);
+});
+
+test('rehydrate가 끝나면 hasHydrated가 true로 바뀐다', async () => {
+  useAppLock.setState({ hasHydrated: false });
+
+  await useAppLock.persist.rehydrate();
+
+  expect(useAppLock.getState().hasHydrated).toBe(true);
+});
