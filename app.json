@@ -55,6 +55,7 @@
       ],
       "@react-native-community/datetimepicker",
       "./plugins/withGoogleServicePlistAtProjectRoot",
+      "./plugins/withSkipCrashlyticsSimulatorUpload",
       "expo-secure-store"
     ],
     "experiments": {
