@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 
 import type { Receipt } from '@/features/receipt/api/types/receipt';
 import type { ReceiptSummary } from '@/features/receipt/api/types/summary';
@@ -18,6 +18,10 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
   useFocusEffect: jest.fn(),
   useScrollToTop: jest.fn(),
+  // LockSetupPromptModal이 useIsFocused()로 이 탭이 포커스됐는지 확인한다 —
+  // 이 화면의 테스트들은 그 값 자체를 검증하는 게 목적이 아니므로 항상 포커스된
+  // 것으로 취급한다(포커스 여부에 따른 동작은 LockSetupPromptModal.test.tsx가 다룸).
+  useIsFocused: jest.fn(() => true),
 }));
 const mockedRouter = router as unknown as { push: jest.Mock };
 
@@ -37,6 +41,27 @@ const renderHomeScreen = () => {
 };
 
 test('데이터 도착 전엔 로딩 상태를 보여준다', async () => {
+  // 기본 목 핸들러는 응답을 즉시 반환해서, 화면에 LockSetupPromptModal처럼 마운트 시
+  // 비동기 작업(하이드레이션)을 하는 컴포넌트가 하나만 더 끼어도 render()의 act
+  // 플러시 안에서 응답까지 같이 resolve돼버려 "로딩 중" 순간 자체를 못 잡는 경우가
+  // 생긴다(실측으로 확인). 이 테스트는 로딩 상태 자체를 검증하는 게 목적이므로,
+  // 이 테스트에서만 응답을 일부러 지연시켜 로딩 창을 안정적으로 만든다.
+  server.use(
+    http.get('*/receipts/summary', async () => {
+      await delay(50);
+      return HttpResponse.json({
+        total: 0,
+        deltaAmount: 0,
+        deltaPercent: 0,
+        byCategory: [],
+      } satisfies ReceiptSummary);
+    }),
+    http.get('*/receipts', async () => {
+      await delay(50);
+      return HttpResponse.json([] satisfies Receipt[]);
+    }),
+  );
+
   await renderHomeScreen();
 
   // ActivityIndicator 등 텍스트 없는 로딩 UI를 쓸 수 있어서 텍스트 대신 testID로 확인.

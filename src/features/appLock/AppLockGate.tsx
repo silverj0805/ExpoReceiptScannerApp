@@ -1,0 +1,99 @@
+import { useState, type ReactNode } from 'react';
+
+import BioAuthVerify from './bio/components/BioAuthVerify';
+import FrozenScreen from './components/frozenScreen';
+import useSessionTimeout from './hooks/useSessionTimeout';
+import PinVerify from './pin/components/pinVerify';
+import { useAppLockStore } from './stores/useAppLockStore';
+
+interface AppLockGateProps {
+  children: ReactNode;
+}
+
+/**
+ * 앱 게이트 — 잠금 설정이 켜져 있고 이번 세션에 아직 인증 안 했으면 자식(메인 앱)을
+ * 아예 안 그리고 잠금 화면만 그린다(통째로 바꿔치기). 등록된 네비게이션 스크린이나
+ * 오버레이(Modal/BottomSheet)가 아니라 조건부 렌더 — 뒤로가기·딥링크로 우회할 라우트
+ * 자체가 없고, 지금은 세션 타임아웃 같은 "메인 앱을 띄운 채 위에만 덮어야 하는" 요구사항이
+ * 없어서 오버레이일 이유도 없다(그런 요구사항이 생기면 그때 오버레이로 바뀔 수 있음).
+ *
+ * `authenticated`는 `useAppLockStore`에 있지만 persist 대상에서 빠져 있어(하이드레이션
+ * 안 됨) 재시작하면 항상 false로 시작한다.
+ *
+ * 잠긴 상태에서 실제로 인증을 수행하는 화면은 `BioAuthVerify`다 — 생체인증 호출·자동
+ * 시도·에러 메시지 처리를 전부 그쪽 책임으로 두고, 이 게이트는 어떤 화면을 보여줄지
+ * 결정하는 조건부 스왑 셸 역할만 한다.
+ *
+ * 인증을 너무 많이 틀려 OS가 lockout으로 판단하면(BioAuthVerify가 감지해서
+ * useAppLockStore.freeze()를 부름) frozenUntil이 설정되고, 그동안은 BioAuthVerify
+ * 대신 `FrozenScreen`을 보여준다 — 얼어붙은 동안은 재시도 자체를 막는다.
+ *
+ * `hasHydrated`가 true가 되기 전까지는 아무것도 그리지 않는다 — `useAppLockStore`는
+ * AsyncStorage에서 값을 비동기로 읽어오는 persist 스토어라, 콜드 스타트 직후엔
+ * 실제로 잠금이 걸려 있어도 아직 초기값(무잠금)만 보이는 짧은 틈이 있다. 그 틈에
+ * 메인 화면을 그려버리면 보안 잠금이 새는 것이므로, 값이 확정될 때까지 기다린다.
+ *
+ * `useSessionTimeout`(백그라운드 5분 이상 시 재인증 요구)도 여기서 딱 한 번만
+ * 마운트한다 — 이 훅이 부르는 곳마다 별도 상태 인스턴스가 생기면 안 되는데,
+ * 상태 자체를 useAppLockStore에 두고 이 훅은 그걸 갱신만 하므로 여러 곳에서
+ * 불러도 안전은 하지만, 굳이 여러 곳에서 리스너를 중복 등록할 이유가 없다.
+ */
+function AppLockGate({ children }: AppLockGateProps) {
+  const isLockSetUp = useAppLockStore(state => state.isLockSetUp);
+  const hasHydrated = useAppLockStore(state => state.hasHydrated);
+  const authenticated = useAppLockStore(state => state.authenticated);
+  const frozenUntil = useAppLockStore(state => state.frozenUntil);
+  const lockType = useAppLockStore(state => state.lockType);
+
+  useSessionTimeout();
+
+  // lockType이 'bio'여도, 생체인증이 계속 실패할 때(마스크·젖은 손·카메라
+  // 이물질 등) 등록해둔 PIN으로 넘어갈 수 있어야 한다 — BioAuthVerify가 이
+  // 값을 true로 바꿔달라고 호출하면(PIN이 실제로 등록돼 있을 때만 그 버튼
+  // 자체를 보여줌) 여기서 PinVerify로 바꿔 그린다. 세션 로컬 전환일 뿐이라
+  // persist하지 않는다 — 인증에 성공해 잠금이 풀리면 다음번엔 다시 원래
+  // 방식(생체인증)부터 보여준다.
+  const [usePinInstead, setUsePinInstead] = useState(false);
+  // authenticated가 false→true로 바뀌는 순간(인증 성공)에만 usePinInstead를
+  // 리셋해야 한다 — useEffect에서 setState를 직접 부르면
+  // react-hooks/set-state-in-effect에 걸리고 불필요한 리렌더가 한 번 더
+  // 생기므로, PinRegisterModal의 wasVisible과 같은 "prop/상태 변화에 맞춰 렌더
+  // 중 상태 조정하기" 패턴을 그대로 쓴다.
+  const [wasAuthenticated, setWasAuthenticated] = useState(authenticated);
+
+  if (authenticated !== wasAuthenticated) {
+    setWasAuthenticated(authenticated);
+    if (authenticated) {
+      setUsePinInstead(false);
+    }
+  }
+
+  // persist가 AsyncStorage에서 실제 잠금 설정 값을 아직 다 읽어오지 못한 상태다 —
+  // 이 시점의 isLockSetUp은 하이드레이션 전 초기값(false)일 뿐 실제 값이 아니므로,
+  // 여기서 자식(메인 화면)을 그려버리면 실제로는 잠금이 걸려 있어도 잠깐 노출될 수
+  // 있다. 값이 무엇인지 확정되기 전까진 아무것도 그리지 않는다.
+  if (!hasHydrated) {
+    return null;
+  }
+
+  // frozenUntil을 lockType보다 먼저 확인한다 — PIN을 5번 틀려 얼어붙은 상태에서도
+  // (lockType: 'pin') PinVerify가 재시도를 계속 받아주면 안 되고, 어떤 방식으로
+  // 잠겨 있든 얼어붙은 동안은 FrozenScreen이 완전히 가려야 한다.
+  if (isLockSetUp && frozenUntil != null) {
+    return <FrozenScreen />;
+  }
+
+  // lockType이 null인 건 이 기능이 생기기 전부터 생체인증으로 잠금을 설정해둔
+  // 사용자거나 아직 방법을 명시적으로 고르지 않은 상태라, 기존 동작(생체인증)을
+  // 그대로 유지하기 위해 기본값으로 BioAuthVerify로 분기한다.
+  if (isLockSetUp && !authenticated) {
+    if (lockType === 'pin' || usePinInstead) {
+      return <PinVerify />;
+    }
+    return <BioAuthVerify onUsePinInstead={() => setUsePinInstead(true)} />;
+  }
+
+  return <>{children}</>;
+}
+
+export default AppLockGate;

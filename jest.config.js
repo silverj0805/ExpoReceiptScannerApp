@@ -33,6 +33,10 @@ module.exports = {
     // 모듈이라 Jest 환경에서 그냥 import하면 "doesn't seem to be linked" 에러로 바로 던짐.
     '^react-native-keyboard-controller$':
       'react-native-keyboard-controller/jest',
+    // @react-native-async-storage/async-storage가 공식으로 제공하는 목(실제 jest.fn() 기반
+    // 인메모리 구현) — 네이티브 모듈이라 실제 모듈을 그냥 import하면 Jest에서 동작 안 함.
+    '^@react-native-async-storage/async-storage$':
+      '@react-native-async-storage/async-storage/jest/async-storage-mock',
   },
   transform: {
     ...jestExpoPreset.transform,
