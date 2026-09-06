@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import ErrorBoundary from 'react-native-error-boundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import AppLockGate from '@/features/appLock/components/appLockGate';
 import {
   recordErrorWithContext,
   setScreenForTracking,
@@ -53,14 +54,16 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ErrorBoundary onError={handleError}>
           <ScreenTracker />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="confirm" />
-            <Stack.Screen name="receipts/[id]" />
-            <Stack.Screen name="settings/index" />
-            <Stack.Screen name="settings/license" />
-            <Stack.Screen name="settings/webview" />
-          </Stack>
+          <AppLockGate>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="confirm" />
+              <Stack.Screen name="receipts/[id]" />
+              <Stack.Screen name="settings/index" />
+              <Stack.Screen name="settings/license" />
+              <Stack.Screen name="settings/webview" />
+            </Stack>
+          </AppLockGate>
         </ErrorBoundary>
       </SafeAreaProvider>
     </QueryClientProvider>
