@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import LockSetupPromptModal from '@/features/appLock/components/lockSetupPromptModal';
 import { receiptQueryFactory, receiptRepository } from '@/features/receipt/api';
 import { useCSSColorVariable } from '@/shared/hooks/useCSSColorVariable';
 
@@ -97,6 +98,7 @@ function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor }}>
+      <LockSetupPromptModal />
       <FlatList
         ref={scrollRef}
         showsVerticalScrollIndicator={false}

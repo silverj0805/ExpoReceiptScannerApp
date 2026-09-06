@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { useAppLock } from '../../hooks/useAppLock';
@@ -14,8 +14,8 @@ interface AppLockGateProps {
  * 자체가 없고, 지금은 세션 타임아웃 같은 "메인 앱을 띄운 채 위에만 덮어야 하는" 요구사항이
  * 없어서 오버레이일 이유도 없다(그런 요구사항이 생기면 그때 오버레이로 바뀔 수 있음).
  *
- * `authenticated`는 이 세션에서만 유효한 로컬 상태다(재시작하면 다시 인증 필요) —
- * `useAppLock`(영구 저장되는 잠금 설정 자체)과는 별개.
+ * `authenticated`는 `useAppLock`에 있지만 persist 대상에서 빠져 있어(하이드레이션
+ * 안 됨) 재시작하면 항상 false로 시작한다
  *
  * 지금은 `auth()`가 실제 생체인증 없이 항상 성공하는 빈 껍데기라, 자동으로 시도하는 대신
  * "인증하기" 버튼을 눌러야 호출되게 해뒀다 — 상태 전환을 눈으로 확인하기 쉽게 하기
@@ -29,8 +29,9 @@ interface AppLockGateProps {
 function AppLockGate({ children }: AppLockGateProps) {
   const isLockSetUp = useAppLock(state => state.isLockSetUp);
   const hasHydrated = useAppLock(state => state.hasHydrated);
+  const authenticated = useAppLock(state => state.authenticated);
+  const setAuthenticated = useAppLock(state => state.setAuthenticated);
   const auth = useAppLock(state => state.auth);
-  const [authenticated, setAuthenticated] = useState(false);
 
   const handleAuthenticate = async () => {
     const success = await auth();

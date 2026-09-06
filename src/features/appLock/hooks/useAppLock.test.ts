@@ -5,7 +5,11 @@ import { useAppLock } from './useAppLock';
 
 beforeEach(async () => {
   await AsyncStorage.clear();
-  useAppLock.setState({ isLockSetUp: false, declinedAt: null });
+  useAppLock.setState({
+    isLockSetUp: false,
+    declinedAt: null,
+    authenticated: false,
+  });
   // 이전 테스트에서 쓴 값이 남아있다가 나중에 비동기로 rehydrate되며 덮어쓰는 걸 방지 —
   // 스토리지를 비운 뒤 명시적으로 한 번 재수화시켜 매 테스트를 결정론적으로 시작한다.
   await useAppLock.persist.rehydrate();
@@ -83,4 +87,30 @@ test('rehydrate가 끝나면 hasHydrated가 true로 바뀐다', async () => {
   await useAppLock.persist.rehydrate();
 
   expect(useAppLock.getState().hasHydrated).toBe(true);
+});
+
+// authenticated는 "이번 세션에서 이미 인증했는지"를 나타내는 세션 로컬 값이다 —
+// 앱을 재시작하면 다시 인증해야 하므로 절대 영속화되면 안 된다.
+test('초기값은 인증되지 않은 상태다', () => {
+  expect(useAppLock.getState().authenticated).toBe(false);
+});
+
+test('setAuthenticated(true)를 호출하면 값이 반영된다', () => {
+  useAppLock.getState().setAuthenticated(true);
+
+  expect(useAppLock.getState().authenticated).toBe(true);
+});
+
+test('authenticated는 AsyncStorage에 저장되지 않는다(세션 로컬)', async () => {
+  const setItemMock = AsyncStorage.setItem as jest.Mock;
+
+  useAppLock.getState().setAuthenticated(true);
+
+  await waitFor(() => {
+    expect(setItemMock).toHaveBeenCalled();
+  });
+
+  const [, savedRaw] =
+    setItemMock.mock.calls[setItemMock.mock.calls.length - 1];
+  expect(JSON.parse(savedRaw).state.authenticated).toBeUndefined();
 });
